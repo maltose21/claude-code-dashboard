@@ -50,7 +50,7 @@ router.get('/', (req, res) => {
     for (const dir of projectDirs) {
       const memDir = path.join(dir.fullPath, 'memory')
       if (fs.existsSync(memDir)) {
-        memoryCount += fs.readdirSync(memDir).filter(f => f.endsWith('.md')).length
+        memoryCount += fs.readdirSync(memDir).filter(f => f.endsWith('.md') && f !== 'MEMORY.md').length
       }
       conversationCount += fs.readdirSync(dir.fullPath).filter(f => f.endsWith('.jsonl')).length
     }
