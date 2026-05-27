@@ -4,16 +4,19 @@ const navItems = [
   { path: '/overview', label: '总览', sublabel: 'Overview', icon: '📊' },
   { path: '/harness', label: 'Harness', sublabel: 'Architecture', icon: '🏗️' },
   { path: '/skills', label: '技能', sublabel: 'Skills', icon: '⚡' },
+  { path: '/agents', label: '子代理', sublabel: 'Agents', icon: '🤖' },
   { path: '/hooks', label: '钩子', sublabel: 'Hooks', icon: '🔗' },
   { path: '/hooklog', label: '日志', sublabel: 'Hook Log', icon: '📋' },
   { path: '/plugins', label: '插件', sublabel: 'Plugins', icon: '🧩' },
   { path: '/memories', label: '记忆', sublabel: 'Memories', icon: '🧠' },
   { path: '/mcp', label: 'MCP', sublabel: 'MCP Servers', icon: '🔌' },
   { path: '/conversations', label: '对话', sublabel: 'Conversations', icon: '💬' },
+  { path: '/plans', label: '计划', sublabel: 'Plans', icon: '📋' },
   { path: '/rules', label: '规则', sublabel: 'Rules', icon: '📏' },
   { path: '/config', label: '配置', sublabel: 'Config', icon: '📝' },
   { path: '/permissions', label: '权限', sublabel: 'Permissions', icon: '🔐' },
   { path: '/diagnostics', label: '诊断', sublabel: 'Diagnostics', icon: '🩺' },
+  { path: '/sessions', label: '会话', sublabel: 'Sessions', icon: '🖥️' },
 ]
 
 export default function Sidebar() {

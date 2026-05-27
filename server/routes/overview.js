@@ -69,6 +69,24 @@ router.get('/', (req, res) => {
 
     stats.extraMarketplaces = (settings.extraKnownMarketplaces || []).length
 
+    const agentsDir = path.join(CLAUDE_DIR, 'agents')
+    let agentCount = 0
+    if (fs.existsSync(agentsDir)) {
+      const walk = (d) => {
+        for (const e of fs.readdirSync(d, { withFileTypes: true })) {
+          if (e.isDirectory()) walk(path.join(d, e.name))
+          else if (e.name.endsWith('.md')) agentCount++
+        }
+      }
+      walk(agentsDir)
+    }
+    stats.agents = agentCount
+
+    const sessionsDir = path.join(CLAUDE_DIR, 'sessions')
+    stats.sessions = fs.existsSync(sessionsDir)
+      ? fs.readdirSync(sessionsDir).filter(f => f.endsWith('.json')).length
+      : 0
+
     res.json(stats)
   } catch (err) {
     res.status(500).json({ error: err.message })

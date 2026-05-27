@@ -14,6 +14,9 @@ import HarnessPanel from './components/HarnessPanel.jsx'
 import HookLogPanel from './components/HookLogPanel.jsx'
 import RulePanel from './components/RulePanel.jsx'
 import DiagnosticsPanel from './components/DiagnosticsPanel.jsx'
+import AgentPanel from './components/AgentPanel.jsx'
+import PlanPanel from './components/PlanPanel.jsx'
+import SessionPanel from './components/SessionPanel.jsx'
 
 export default function App() {
   return (
@@ -34,6 +37,9 @@ export default function App() {
         <Route path="config" element={<ConfigPanel />} />
         <Route path="permissions" element={<PermissionPanel />} />
         <Route path="diagnostics" element={<DiagnosticsPanel />} />
+        <Route path="agents" element={<AgentPanel />} />
+        <Route path="plans" element={<PlanPanel />} />
+        <Route path="sessions" element={<SessionPanel />} />
       </Route>
     </Routes>
   )
