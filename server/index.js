@@ -12,6 +12,8 @@ import configRouter from './routes/config.js'
 import permissionsRouter from './routes/permissions.js'
 import overviewRouter from './routes/overview.js'
 import rulesRouter from './routes/rules.js'
+import marketplaceRouter from './routes/marketplace.js'
+import diagnosticsRouter from './routes/diagnostics.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const app = express()
@@ -30,6 +32,8 @@ app.use('/api/config', configRouter)
 app.use('/api/permissions', permissionsRouter)
 app.use('/api/overview', overviewRouter)
 app.use('/api/rules', rulesRouter)
+app.use('/api/marketplace', marketplaceRouter)
+app.use('/api/diagnostics', diagnosticsRouter)
 
 const distDir = path.join(__dirname, '..', 'dist')
 app.use(express.static(distDir))

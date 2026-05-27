@@ -375,6 +375,69 @@ function LayerDetail({ layer, data }) {
   }
 }
 
+const WORKFLOW_STEPS = [
+  { skill: 'brainstorming', label: '头脑风暴', desc: '探索需求，验证设计' },
+  { skill: 'writing-plans', label: '编写计划', desc: '分解为可执行的小任务' },
+  { skill: 'executing-plans', label: '执行计划', desc: '逐步实现，检查点审查' },
+  { skill: 'test-driven-development', label: 'TDD', desc: '红-绿-重构循环' },
+  { skill: 'verification-before-completion', label: '验证完成', desc: '证据先于声明' },
+]
+
+function WorkflowSection({ skills }) {
+  const installedNames = skills.map(s => s.name)
+  const hasAny = WORKFLOW_STEPS.some(s => installedNames.includes(s.skill))
+
+  return (
+    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 mb-8">
+      <div className="flex items-center gap-2 mb-1">
+        <span className="text-lg">🔄</span>
+        <h3 className="text-[15px] font-semibold text-gray-900">推荐工作流</h3>
+      </div>
+      <p className="text-[12px] text-gray-400 mb-5">
+        基于 <a href="https://github.com/obra/superpowers" target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">Superpowers</a> 方法论的最佳实践流程
+      </p>
+
+      <div className="flex items-center gap-0 overflow-x-auto pb-2">
+        {WORKFLOW_STEPS.map((step, i) => {
+          const installed = installedNames.includes(step.skill)
+          return (
+            <div key={step.skill} className="flex items-center shrink-0">
+              <div className={`px-4 py-3 rounded-xl border-2 transition-all min-w-[120px] text-center ${
+                installed
+                  ? 'border-blue-200 bg-blue-50'
+                  : 'border-gray-200 bg-gray-50'
+              }`}>
+                <p className={`text-[13px] font-medium ${installed ? 'text-blue-700' : 'text-gray-400'}`}>
+                  {step.label}
+                </p>
+                <p className={`text-[11px] mt-0.5 ${installed ? 'text-blue-500' : 'text-gray-300'}`}>
+                  {step.desc}
+                </p>
+                {installed ? (
+                  <span className="inline-block mt-1.5 text-[10px] bg-blue-100 text-blue-600 px-1.5 py-0.5 rounded font-medium">已安装</span>
+                ) : (
+                  <span className="inline-block mt-1.5 text-[10px] bg-gray-100 text-gray-400 px-1.5 py-0.5 rounded">未安装</span>
+                )}
+              </div>
+              {i < WORKFLOW_STEPS.length - 1 && (
+                <svg className="w-5 h-5 text-gray-300 mx-1 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+              )}
+            </div>
+          )
+        })}
+      </div>
+
+      {!hasAny && (
+        <div className="mt-4 bg-amber-50 border border-amber-100 rounded-lg px-4 py-3 text-[12px] text-amber-700">
+          你尚未安装 Superpowers 技能包。前往 <Link to="/marketplace" className="text-blue-600 hover:underline font-medium">技能市场</Link> 一键安装完整方法论。
+        </div>
+      )}
+    </div>
+  )
+}
+
 export default function HarnessPanel() {
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -511,6 +574,9 @@ export default function HarnessPanel() {
             </div>
           )}
         </div>
+
+        {/* ===== 推荐工作流 ===== */}
+        <WorkflowSection skills={data.skills} />
 
         {/* 快速导航 */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">

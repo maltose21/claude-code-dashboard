@@ -4,6 +4,7 @@ const navItems = [
   { path: '/overview', label: '总览', sublabel: 'Overview', icon: '📊' },
   { path: '/harness', label: 'Harness', sublabel: 'Architecture', icon: '🏗️' },
   { path: '/skills', label: '技能', sublabel: 'Skills', icon: '⚡' },
+  { path: '/marketplace', label: '市场', sublabel: 'Marketplace', icon: '🏪' },
   { path: '/hooks', label: '钩子', sublabel: 'Hooks', icon: '🔗' },
   { path: '/plugins', label: '插件', sublabel: 'Plugins', icon: '🧩' },
   { path: '/memories', label: '记忆', sublabel: 'Memories', icon: '🧠' },
@@ -12,6 +13,7 @@ const navItems = [
   { path: '/rules', label: '规则', sublabel: 'Rules', icon: '📏' },
   { path: '/config', label: '配置', sublabel: 'Config', icon: '📝' },
   { path: '/permissions', label: '权限', sublabel: 'Permissions', icon: '🔐' },
+  { path: '/diagnostics', label: '诊断', sublabel: 'Diagnostics', icon: '🩺' },
 ]
 
 export default function Sidebar() {
