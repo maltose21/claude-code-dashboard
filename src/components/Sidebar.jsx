@@ -9,6 +9,7 @@ const navItems = [
   { path: '/memories', label: '记忆', sublabel: 'Memories', icon: '🧠' },
   { path: '/mcp', label: 'MCP', sublabel: 'MCP Servers', icon: '🔌' },
   { path: '/conversations', label: '对话', sublabel: 'Conversations', icon: '💬' },
+  { path: '/rules', label: '规则', sublabel: 'Rules', icon: '📏' },
   { path: '/config', label: '配置', sublabel: 'Config', icon: '📝' },
   { path: '/permissions', label: '权限', sublabel: 'Permissions', icon: '🔐' },
 ]

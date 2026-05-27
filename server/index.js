@@ -11,6 +11,7 @@ import mcpRouter from './routes/mcp.js'
 import configRouter from './routes/config.js'
 import permissionsRouter from './routes/permissions.js'
 import overviewRouter from './routes/overview.js'
+import rulesRouter from './routes/rules.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const app = express()
@@ -28,6 +29,7 @@ app.use('/api/mcp', mcpRouter)
 app.use('/api/config', configRouter)
 app.use('/api/permissions', permissionsRouter)
 app.use('/api/overview', overviewRouter)
+app.use('/api/rules', rulesRouter)
 
 const distDir = path.join(__dirname, '..', 'dist')
 app.use(express.static(distDir))

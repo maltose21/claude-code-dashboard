@@ -11,6 +11,7 @@ import McpPanel from './components/McpPanel.jsx'
 import ConfigPanel from './components/ConfigPanel.jsx'
 import PermissionPanel from './components/PermissionPanel.jsx'
 import HarnessPanel from './components/HarnessPanel.jsx'
+import RulePanel from './components/RulePanel.jsx'
 
 export default function App() {
   return (
@@ -26,6 +27,7 @@ export default function App() {
         <Route path="mcp" element={<McpPanel />} />
         <Route path="conversations" element={<ConversationList />} />
         <Route path="conversations/:id" element={<ConversationDetail />} />
+        <Route path="rules" element={<RulePanel />} />
         <Route path="config" element={<ConfigPanel />} />
         <Route path="permissions" element={<PermissionPanel />} />
       </Route>
