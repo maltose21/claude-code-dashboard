@@ -11,6 +11,7 @@ import McpPanel from './components/McpPanel.jsx'
 import ConfigPanel from './components/ConfigPanel.jsx'
 import PermissionPanel from './components/PermissionPanel.jsx'
 import HarnessPanel from './components/HarnessPanel.jsx'
+import HookLogPanel from './components/HookLogPanel.jsx'
 import RulePanel from './components/RulePanel.jsx'
 import DiagnosticsPanel from './components/DiagnosticsPanel.jsx'
 
@@ -23,6 +24,7 @@ export default function App() {
         <Route path="harness" element={<HarnessPanel />} />
         <Route path="skills" element={<SkillPanel />} />
         <Route path="hooks" element={<HookPanel />} />
+        <Route path="hooklog" element={<HookLogPanel />} />
         <Route path="plugins" element={<PluginPanel />} />
         <Route path="memories" element={<MemoryPanel />} />
         <Route path="mcp" element={<McpPanel />} />

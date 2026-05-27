@@ -13,6 +13,7 @@ import permissionsRouter from './routes/permissions.js'
 import overviewRouter from './routes/overview.js'
 import rulesRouter from './routes/rules.js'
 import diagnosticsRouter from './routes/diagnostics.js'
+import hooklogRouter from './routes/hooklog.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const app = express()
@@ -32,6 +33,7 @@ app.use('/api/permissions', permissionsRouter)
 app.use('/api/overview', overviewRouter)
 app.use('/api/rules', rulesRouter)
 app.use('/api/diagnostics', diagnosticsRouter)
+app.use('/api/hooklog', hooklogRouter)
 
 const distDir = path.join(__dirname, '..', 'dist')
 app.use(express.static(distDir))
