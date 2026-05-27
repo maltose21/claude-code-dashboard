@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import Modal from './ui/Modal'
 import ConfirmDialog from './ui/ConfirmDialog'
 import CodeEditor from './ui/CodeEditor'
@@ -24,6 +24,21 @@ metadata:
 （在此编写记忆内容）
 `
 
+function parseFrontmatterClient(content) {
+  const match = content.match(/^---\n([\s\S]*?)\n---\n?([\s\S]*)$/)
+  if (!match) return { name: '', description: '', type: '', body: content, hasFrontmatter: false }
+  const yaml = match[1]
+  const body = match[2]
+  let name = '', description = '', type = ''
+  const nameMatch = yaml.match(/^name:\s*(.+)/m)
+  if (nameMatch) name = nameMatch[1].trim()
+  const descMatch = yaml.match(/^description:\s*(.+)/m)
+  if (descMatch) description = descMatch[1].trim()
+  const typeMatch = yaml.match(/type:\s*(.+)/m)
+  if (typeMatch) type = typeMatch[1].trim()
+  return { name, description, type, body: body.trim(), hasFrontmatter: true }
+}
+
 export default function MemoryPanel() {
   const [memories, setMemories] = useState([])
   const [loading, setLoading] = useState(true)
@@ -36,6 +51,16 @@ export default function MemoryPanel() {
   const [addFilename, setAddFilename] = useState('')
   const [addContent, setAddContent] = useState(MEMORY_TEMPLATE)
   const [deleteTarget, setDeleteTarget] = useState(null)
+
+  const [showImport, setShowImport] = useState(false)
+  const [importMode, setImportMode] = useState('paste')
+  const [importContent, setImportContent] = useState('')
+  const [importProject, setImportProject] = useState('')
+  const [importFilename, setImportFilename] = useState('')
+  const [importPreview, setImportPreview] = useState(null)
+  const [importing, setImporting] = useState(false)
+  const fileInputRef = useRef(null)
+
   const toast = useToast()
 
   const load = () => {
@@ -46,6 +71,19 @@ export default function MemoryPanel() {
   }
 
   useEffect(() => { load() }, [])
+
+  // Parse import content whenever it changes
+  useEffect(() => {
+    if (!importContent.trim()) {
+      setImportPreview(null)
+      return
+    }
+    const parsed = parseFrontmatterClient(importContent)
+    setImportPreview(parsed)
+    if (parsed.name && !importFilename) {
+      setImportFilename(parsed.name)
+    }
+  }, [importContent])
 
   const handleSave = async () => {
     if (!selected || selected.type !== 'file') return
@@ -97,6 +135,80 @@ export default function MemoryPanel() {
     }
   }
 
+  const handleFileUpload = (e) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    if (!file.name.endsWith('.md')) {
+      toast('请选择 .md 文件', 'error')
+      return
+    }
+    const reader = new FileReader()
+    reader.onload = (ev) => {
+      setImportContent(ev.target.result)
+      if (!importFilename) {
+        setImportFilename(file.name.replace(/\.md$/, ''))
+      }
+    }
+    reader.readAsText(file)
+  }
+
+  const handleDrop = (e) => {
+    e.preventDefault()
+    const file = e.dataTransfer.files?.[0]
+    if (!file) return
+    if (!file.name.endsWith('.md')) {
+      toast('请选择 .md 文件', 'error')
+      return
+    }
+    const reader = new FileReader()
+    reader.onload = (ev) => {
+      setImportContent(ev.target.result)
+      if (!importFilename) {
+        setImportFilename(file.name.replace(/\.md$/, ''))
+      }
+    }
+    reader.readAsText(file)
+  }
+
+  const handleImport = async () => {
+    if (!importProject || !importFilename.trim() || !importContent.trim()) return
+    setImporting(true)
+
+    let content = importContent
+    const parsed = parseFrontmatterClient(content)
+    if (!parsed.hasFrontmatter) {
+      content = `---\nname: ${importFilename.trim()}\ndescription: 导入的记忆\nmetadata:\n  type: project\n---\n\n${content}`
+    }
+
+    try {
+      const res = await fetch('/api/memories', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ projectDir: importProject, filename: importFilename.trim(), content })
+      })
+      if (res.ok) {
+        toast('记忆已导入', 'success')
+        setShowImport(false)
+        resetImportForm()
+        load()
+      } else {
+        const err = await res.json()
+        toast(err.error || '导入失败', 'error')
+      }
+    } catch {
+      toast('网络错误', 'error')
+    }
+    setImporting(false)
+  }
+
+  const resetImportForm = () => {
+    setImportContent('')
+    setImportProject('')
+    setImportFilename('')
+    setImportPreview(null)
+    setImportMode('paste')
+  }
+
   if (loading) return <div className="flex items-center justify-center h-full text-gray-400 text-[15px]">加载中...</div>
 
   const allFiles = memories.flatMap(p => p.files.map(f => ({ ...f, project: p.project, projectDir: p.projectDir, indexContent: p.indexContent })))
@@ -111,9 +223,14 @@ export default function MemoryPanel() {
         <div className="p-5 border-b border-gray-100">
           <div className="flex items-center justify-between mb-2">
             <h2 className="text-lg font-semibold text-gray-900">记忆</h2>
-            <button onClick={() => setShowAdd(true)} className="text-xs bg-blue-500 hover:bg-blue-600 text-white px-3 py-1.5 rounded-lg transition-colors font-medium">
-              + 新增
-            </button>
+            <div className="flex gap-1.5">
+              <button onClick={() => { setShowImport(true); resetImportForm() }} className="text-xs bg-white border border-gray-200 hover:bg-gray-50 text-gray-600 px-2.5 py-1.5 rounded-lg transition-colors font-medium">
+                导入
+              </button>
+              <button onClick={() => setShowAdd(true)} className="text-xs bg-blue-500 hover:bg-blue-600 text-white px-3 py-1.5 rounded-lg transition-colors font-medium">
+                + 新增
+              </button>
+            </div>
           </div>
           <p className="text-[12px] text-gray-400 leading-relaxed mb-3">
             记忆是 Claude Code 的持久化上下文。每次启动新会话时自动加载，让 Claude 记住你的偏好、项目约束和关键决策，无需重复交代。
@@ -298,10 +415,10 @@ export default function MemoryPanel() {
               <div className="text-left bg-gray-50 rounded-xl p-4 mb-4">
                 <p className="text-[12px] text-gray-500 font-medium mb-2">适合保存为记忆的内容：</p>
                 <ul className="text-[12px] text-gray-500 space-y-1.5 leading-relaxed">
-                  <li>• <b className="text-gray-600">用户画像</b> — 你的角色、技术栈偏好、沟通风格</li>
-                  <li>• <b className="text-gray-600">行为反馈</b> — "不要 mock 数据库"、"用中文注释"</li>
-                  <li>• <b className="text-gray-600">项目信息</b> — 架构决策、部署约束、合规要求</li>
-                  <li>• <b className="text-gray-600">外部引用</b> — 相关文档/看板/Slack 频道的位置</li>
+                  <li>- <b className="text-gray-600">用户画像</b> — 你的角色、技术栈偏好、沟通风格</li>
+                  <li>- <b className="text-gray-600">行为反馈</b> — "不要 mock 数据库"、"用中文注释"</li>
+                  <li>- <b className="text-gray-600">项目信息</b> — 架构决策、部署约束、合规要求</li>
+                  <li>- <b className="text-gray-600">外部引用</b> — 相关文档/看板/Slack 频道的位置</li>
                 </ul>
               </div>
               <div className="grid grid-cols-2 gap-3 max-w-xs mx-auto text-left">
@@ -363,6 +480,161 @@ export default function MemoryPanel() {
               className="px-5 py-2.5 text-[13px] bg-blue-500 hover:bg-blue-600 disabled:opacity-40 text-white rounded-lg transition-colors font-medium shadow-sm"
             >
               创建
+            </button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Import MD Modal */}
+      <Modal open={showImport} onClose={() => setShowImport(false)} title="导入 MD 记忆" width="max-w-2xl">
+        <div className="space-y-5">
+          {/* 导入说明 */}
+          <div className="bg-blue-50/60 border border-blue-100/60 rounded-xl p-4">
+            <p className="text-[13px] text-gray-700 font-medium mb-2">导入说明</p>
+            <p className="text-[12px] text-gray-500 leading-relaxed mb-2">
+              将 Markdown 文件导入为记忆。支持从对话导出的 MD 或手动编写的内容。
+            </p>
+            <div className="text-[12px] text-gray-500 space-y-0.5">
+              <p>- 建议包含 YAML frontmatter（<code className="bg-white/60 px-1 rounded">name</code>、<code className="bg-white/60 px-1 rounded">description</code>、<code className="bg-white/60 px-1 rounded">metadata.type</code>）</p>
+              <p>- 如无 frontmatter，将自动生成默认值</p>
+              <p>- 支持 4 种类型：用户画像 / 行为反馈 / 项目信息 / 外部引用</p>
+            </div>
+          </div>
+
+          {/* 目标项目 */}
+          <div>
+            <label className="block text-[13px] text-gray-700 mb-1.5 font-medium">目标项目</label>
+            <select
+              value={importProject}
+              onChange={e => setImportProject(e.target.value)}
+              className="w-full bg-gray-100/80 border-none rounded-lg px-3 py-2.5 text-[13px] text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500/30"
+            >
+              <option value="">选择项目...</option>
+              {projectDirs.map(p => (
+                <option key={p.dir} value={p.dir}>{p.name}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* 文件名 */}
+          <div>
+            <label className="block text-[13px] text-gray-700 mb-1.5 font-medium">记忆文件名</label>
+            <input
+              value={importFilename}
+              onChange={e => setImportFilename(e.target.value)}
+              placeholder="例如: imported-memory"
+              className="w-full bg-gray-100/80 border-none rounded-lg px-4 py-2.5 text-[13px] text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:bg-white placeholder:text-gray-400 transition-colors font-mono"
+            />
+            <p className="text-[11px] text-gray-400 mt-1">将自动添加 .md 后缀</p>
+          </div>
+
+          {/* 导入方式切换 */}
+          <div>
+            <label className="block text-[13px] text-gray-700 mb-1.5 font-medium">导入方式</label>
+            <div className="flex gap-1 bg-gray-100 rounded-lg p-0.5 w-fit">
+              <button
+                onClick={() => setImportMode('paste')}
+                className={`text-[12px] px-3 py-1.5 rounded-md font-medium transition-colors ${
+                  importMode === 'paste' ? 'bg-white text-gray-800 shadow-sm' : 'text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                粘贴内容
+              </button>
+              <button
+                onClick={() => setImportMode('upload')}
+                className={`text-[12px] px-3 py-1.5 rounded-md font-medium transition-colors ${
+                  importMode === 'upload' ? 'bg-white text-gray-800 shadow-sm' : 'text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                上传文件
+              </button>
+            </div>
+          </div>
+
+          {/* 粘贴/上传区域 */}
+          {importMode === 'paste' ? (
+            <div>
+              <textarea
+                value={importContent}
+                onChange={e => setImportContent(e.target.value)}
+                rows={12}
+                className="w-full bg-gray-50 border border-gray-200 rounded-xl p-4 text-[13px] text-gray-700 font-mono leading-6 resize-y focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-300 placeholder:text-gray-400 transition-colors"
+                placeholder={"粘贴 Markdown 内容...\n\n---\nname: my-memory\ndescription: 一句话描述\nmetadata:\n  type: project\n---\n\n正文内容..."}
+              />
+            </div>
+          ) : (
+            <div
+              onDrop={handleDrop}
+              onDragOver={e => e.preventDefault()}
+              onClick={() => fileInputRef.current?.click()}
+              className="border-2 border-dashed border-gray-200 rounded-xl p-8 text-center cursor-pointer hover:border-blue-300 hover:bg-blue-50/30 transition-all"
+            >
+              <div className="text-3xl mb-2 opacity-40">📄</div>
+              <p className="text-[13px] text-gray-500 font-medium mb-1">点击选择或拖拽 .md 文件到此处</p>
+              <p className="text-[11px] text-gray-400">支持 Markdown (.md) 格式</p>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".md"
+                onChange={handleFileUpload}
+                className="hidden"
+              />
+              {importContent && (
+                <p className="text-[12px] text-green-600 mt-3 font-medium">已加载文件内容（{importContent.length} 字符）</p>
+              )}
+            </div>
+          )}
+
+          {/* 解析预览 */}
+          {importPreview && (
+            <div className="bg-gray-50 border border-gray-200 rounded-xl p-4">
+              <p className="text-[12px] text-gray-500 font-semibold mb-2 uppercase tracking-wide">解析预览</p>
+              <div className="grid grid-cols-2 gap-x-6 gap-y-1.5 text-[12px]">
+                <div className="flex gap-2">
+                  <span className="text-gray-400 shrink-0">名称:</span>
+                  <span className="text-gray-700 font-mono">{importPreview.name || <span className="text-gray-400 italic">（将使用文件名）</span>}</span>
+                </div>
+                <div className="flex gap-2">
+                  <span className="text-gray-400 shrink-0">类型:</span>
+                  <span className={`font-medium ${(TYPE_META[importPreview.type] || TYPE_META.unknown).color}`}>
+                    {(TYPE_META[importPreview.type] || TYPE_META.unknown).label}
+                  </span>
+                </div>
+                <div className="flex gap-2 col-span-2">
+                  <span className="text-gray-400 shrink-0">描述:</span>
+                  <span className="text-gray-700">{importPreview.description || <span className="text-gray-400 italic">（无）</span>}</span>
+                </div>
+                <div className="flex gap-2">
+                  <span className="text-gray-400 shrink-0">正文:</span>
+                  <span className="text-gray-700">{importPreview.body.length} 字</span>
+                </div>
+                <div className="flex gap-2">
+                  <span className="text-gray-400 shrink-0">Frontmatter:</span>
+                  <span className={importPreview.hasFrontmatter ? 'text-green-600' : 'text-amber-500'}>
+                    {importPreview.hasFrontmatter ? '已检测到' : '未检测到（将自动生成）'}
+                  </span>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* 确认警告 */}
+          <div className="bg-amber-50 border border-amber-200/60 rounded-lg px-4 py-3 flex items-start gap-2.5">
+            <span className="text-amber-500 text-sm mt-0.5">!</span>
+            <p className="text-[12px] text-amber-700 leading-relaxed">
+              导入后将作为<b>永久记忆</b>，该项目下所有未来 Claude Code 对话都会自动加载。请确认内容准确且有长期价值。
+            </p>
+          </div>
+
+          {/* 按钮 */}
+          <div className="flex justify-end gap-3 pt-1">
+            <button onClick={() => setShowImport(false)} className="px-4 py-2.5 text-[13px] text-gray-500 hover:text-gray-700 rounded-lg hover:bg-gray-100 font-medium transition-colors">取消</button>
+            <button
+              onClick={handleImport}
+              disabled={importing || !importProject || !importFilename.trim() || !importContent.trim()}
+              className="px-5 py-2.5 text-[13px] bg-blue-500 hover:bg-blue-600 disabled:opacity-40 text-white rounded-lg transition-colors font-medium shadow-sm"
+            >
+              {importing ? '导入中...' : '确认导入'}
             </button>
           </div>
         </div>
