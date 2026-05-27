@@ -2,7 +2,6 @@ import { NavLink } from 'react-router-dom'
 
 const navItems = [
   { path: '/overview', label: '总览', sublabel: 'Overview', icon: '📊' },
-  { path: '/harness', label: 'Harness', sublabel: 'Architecture', icon: '🏗️' },
   { path: '/skills', label: '技能', sublabel: 'Skills', icon: '⚡' },
   { path: '/agents', label: '子代理', sublabel: 'Agents', icon: '🤖' },
   { path: '/hooks', label: '钩子', sublabel: 'Hooks', icon: '🔗' },

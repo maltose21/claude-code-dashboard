@@ -10,7 +10,6 @@ import PluginPanel from './components/PluginPanel.jsx'
 import McpPanel from './components/McpPanel.jsx'
 import ConfigPanel from './components/ConfigPanel.jsx'
 import PermissionPanel from './components/PermissionPanel.jsx'
-import HarnessPanel from './components/HarnessPanel.jsx'
 import HookLogPanel from './components/HookLogPanel.jsx'
 import RulePanel from './components/RulePanel.jsx'
 import DiagnosticsPanel from './components/DiagnosticsPanel.jsx'
@@ -24,7 +23,7 @@ export default function App() {
       <Route path="/" element={<Layout />}>
         <Route index element={<Navigate to="/overview" replace />} />
         <Route path="overview" element={<Overview />} />
-        <Route path="harness" element={<HarnessPanel />} />
+        <Route path="harness" element={<Navigate to="/overview" replace />} />
         <Route path="skills" element={<SkillPanel />} />
         <Route path="hooks" element={<HookPanel />} />
         <Route path="hooklog" element={<HookLogPanel />} />

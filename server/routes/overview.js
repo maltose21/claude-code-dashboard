@@ -192,7 +192,11 @@ router.get('/harness', (req, res) => {
         }
       }
     }
-    result.hooks = { events: Object.keys(hooks), summary: hookSummary }
+    const eventCounts = {}
+    for (const h of hookSummary) {
+      eventCounts[h.event] = (eventCounts[h.event] || 0) + 1
+    }
+    result.hooks = { events: Object.keys(hooks), summary: hookSummary, eventCounts }
 
     // Plugins
     const pluginsPath = path.join(CLAUDE_DIR, 'plugins', 'installed_plugins.json')
@@ -282,7 +286,121 @@ router.get('/harness', (req, res) => {
       editorMode: settings.editorMode || 'normal',
     }
 
+    // Agents
+    const userAgentsDir = path.join(CLAUDE_DIR, 'agents')
+    const projAgentsDir = path.join(process.cwd(), '.claude', 'agents')
+    let userAgentCount = 0, projAgentCount = 0
+    const countMd = (d) => {
+      if (!fs.existsSync(d)) return 0
+      let c = 0
+      const walkDir = (dir) => {
+        for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
+          if (e.isDirectory()) walkDir(path.join(dir, e.name))
+          else if (e.name.endsWith('.md')) c++
+        }
+      }
+      walkDir(d)
+      return c
+    }
+    userAgentCount = countMd(userAgentsDir)
+    projAgentCount = countMd(projAgentsDir)
+    result.agents = { user: userAgentCount, project: projAgentCount, total: userAgentCount + projAgentCount }
+
+    // Sessions
+    const sessionsDir = path.join(CLAUDE_DIR, 'sessions')
+    let sessTotal = 0, sessAlive = 0
+    if (fs.existsSync(sessionsDir)) {
+      const sessFiles = fs.readdirSync(sessionsDir).filter(f => f.endsWith('.json'))
+      sessTotal = sessFiles.length
+      for (const f of sessFiles) {
+        try {
+          const s = JSON.parse(fs.readFileSync(path.join(sessionsDir, f), 'utf-8'))
+          if (s.pid) { try { process.kill(s.pid, 0); sessAlive++ } catch {} }
+        } catch {}
+      }
+    }
+    result.sessions = { total: sessTotal, alive: sessAlive }
+
+    // Plans
+    const plansDir = path.join(CLAUDE_DIR, 'plans')
+    result.plans = fs.existsSync(plansDir)
+      ? fs.readdirSync(plansDir).filter(f => f.endsWith('.md')).length
+      : 0
+
     res.json(result)
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+router.get('/tokens', (req, res) => {
+  try {
+    const projectDirs = getProjectDirs()
+    const byModel = {}
+    const daily = {}
+    const sevenDaysAgo = Date.now() - 7 * 24 * 3600000
+
+    for (const dir of projectDirs) {
+      const files = fs.readdirSync(dir.fullPath).filter(f => f.endsWith('.jsonl'))
+      for (const file of files) {
+        const filePath = path.join(dir.fullPath, file)
+        const content = fs.readFileSync(filePath, 'utf-8')
+        const seenConv = {}
+
+        for (const line of content.split('\n')) {
+          if (!line.includes('"assistant"') || !line.includes('"usage"')) continue
+          let d
+          try { d = JSON.parse(line) } catch { continue }
+          if (d.type !== 'assistant' || !d.message?.usage) continue
+
+          const model = d.message.model || 'unknown'
+          if (model === '<synthetic>') continue
+          const u = d.message.usage
+
+          if (!byModel[model]) byModel[model] = { input: 0, output: 0, cacheCreation: 0, cacheRead: 0, messageCount: 0, conversationCount: 0 }
+          const m = byModel[model]
+          m.input += u.input_tokens || 0
+          m.output += u.output_tokens || 0
+          m.cacheCreation += u.cache_creation_input_tokens || 0
+          m.cacheRead += u.cache_read_input_tokens || 0
+          m.messageCount++
+          if (!seenConv[model]) seenConv[model] = new Set()
+          seenConv[model].add(file)
+
+          if (d.timestamp) {
+            const ts = new Date(d.timestamp).getTime()
+            if (ts >= sevenDaysAgo) {
+              const date = new Date(d.timestamp).toISOString().slice(0, 10)
+              if (!daily[date]) daily[date] = { input: 0, output: 0, cacheCreation: 0, cacheRead: 0 }
+              daily[date].input += u.input_tokens || 0
+              daily[date].output += u.output_tokens || 0
+              daily[date].cacheCreation += u.cache_creation_input_tokens || 0
+              daily[date].cacheRead += u.cache_read_input_tokens || 0
+            }
+          }
+        }
+
+        for (const [model, convSet] of Object.entries(seenConv)) {
+          byModel[model].conversationCount += convSet.size
+        }
+      }
+    }
+
+    const total = { input: 0, output: 0, cacheCreation: 0, cacheRead: 0, messageCount: 0, conversationCount: 0 }
+    for (const m of Object.values(byModel)) {
+      total.input += m.input
+      total.output += m.output
+      total.cacheCreation += m.cacheCreation
+      total.cacheRead += m.cacheRead
+      total.messageCount += m.messageCount
+      total.conversationCount += m.conversationCount
+    }
+
+    const recent = Object.entries(daily)
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([date, v]) => ({ date, ...v }))
+
+    res.json({ byModel, total, recent })
   } catch (err) {
     res.status(500).json({ error: err.message })
   }
