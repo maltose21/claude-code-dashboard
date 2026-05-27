@@ -24,6 +24,7 @@ export default function MarketplacePanel() {
   const [packs, setPacks] = useState([])
   const [loading, setLoading] = useState(true)
   const [installing, setInstalling] = useState(null)
+  const [activeTag, setActiveTag] = useState(null)
   const toast = useToast()
 
   const load = () => {
@@ -60,15 +61,40 @@ export default function MarketplacePanel() {
     return <div className="flex items-center justify-center h-full text-gray-400 text-sm">加载中...</div>
   }
 
-  const featured = packs.filter(p => p.featured)
-  const others = packs.filter(p => !p.featured)
+  const allTags = [...new Set(packs.flatMap(p => p.tags))].sort()
+  const filtered = activeTag ? packs.filter(p => p.tags.includes(activeTag)) : packs
+  const featured = filtered.filter(p => p.featured)
+  const others = filtered.filter(p => !p.featured)
 
   return (
     <div className="h-full overflow-y-auto p-8">
       <div className="max-w-5xl mx-auto">
-        <div className="mb-8">
+        <div className="mb-6">
           <h2 className="text-xl font-semibold text-gray-900">技能市场</h2>
           <p className="text-sm text-gray-500 mt-1">发现并安装高质量技能包，增强 Claude Code 的能力</p>
+        </div>
+
+        {/* Tag filter */}
+        <div className="flex flex-wrap gap-2 mb-8">
+          <button
+            onClick={() => setActiveTag(null)}
+            className={`text-[12px] px-3 py-1.5 rounded-full font-medium transition-colors border ${
+              !activeTag ? 'bg-blue-500 text-white border-blue-500' : 'bg-white text-gray-600 border-gray-200 hover:border-blue-300 hover:text-blue-600'
+            }`}
+          >
+            全部
+          </button>
+          {allTags.map(tag => (
+            <button
+              key={tag}
+              onClick={() => setActiveTag(activeTag === tag ? null : tag)}
+              className={`text-[12px] px-3 py-1.5 rounded-full font-medium transition-colors border ${
+                activeTag === tag ? 'bg-blue-500 text-white border-blue-500' : 'bg-white text-gray-600 border-gray-200 hover:border-blue-300 hover:text-blue-600'
+              }`}
+            >
+              {tag}
+            </button>
+          ))}
         </div>
 
         {/* Featured */}
@@ -95,7 +121,7 @@ export default function MarketplacePanel() {
           </div>
         )}
 
-        {packs.length === 0 && (
+        {filtered.length === 0 && (
           <div className="bg-white rounded-xl border border-gray-200 p-12 text-center">
             <p className="text-gray-400 text-sm">暂无推荐技能包</p>
           </div>
