@@ -105,26 +105,6 @@ const RECOMMENDED_PACKS = [
     tags: ['design', 'collaboration', 'planning'],
     featured: false,
   },
-  {
-    id: 'security-hardening',
-    name: 'Security & Hardening',
-    author: 'community',
-    description: '安全加固技能 — OWASP Top 10 检查、依赖漏洞扫描、敏感信息泄露检测，适合安全敏感项目',
-    url: 'https://github.com/anthropics/claude-code-security-skills',
-    skills: ['security-and-hardening'],
-    tags: ['security', 'hardening', 'audit'],
-    featured: false,
-  },
-  {
-    id: 'testing-quality',
-    name: 'Testing & Quality',
-    author: 'community',
-    description: '测试与质量保障 — 包含测试策略设计、覆盖率分析、集成测试最佳实践，确保代码变更有充分的测试覆盖',
-    url: 'https://github.com/anthropics/claude-code-testing-skills',
-    skills: ['review-testing', 'tdd'],
-    tags: ['test', 'quality', 'coverage'],
-    featured: false,
-  },
 ]
 
 function getInstalledSkills() {
