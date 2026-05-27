@@ -431,7 +431,7 @@ function WorkflowSection({ skills }) {
 
       {!hasAny && (
         <div className="mt-4 bg-amber-50 border border-amber-100 rounded-lg px-4 py-3 text-[12px] text-amber-700">
-          你尚未安装 Superpowers 技能包。前往 <Link to="/marketplace" className="text-blue-600 hover:underline font-medium">技能市场</Link> 一键安装完整方法论。
+          你尚未安装 Superpowers 技能包。前往 <Link to="/skills" className="text-blue-600 hover:underline font-medium">技能页面</Link> 点击安装，输入 https://github.com/obra/superpowers 即可获取完整方法论。
         </div>
       )}
     </div>

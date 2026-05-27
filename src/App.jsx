@@ -12,7 +12,6 @@ import ConfigPanel from './components/ConfigPanel.jsx'
 import PermissionPanel from './components/PermissionPanel.jsx'
 import HarnessPanel from './components/HarnessPanel.jsx'
 import RulePanel from './components/RulePanel.jsx'
-import MarketplacePanel from './components/MarketplacePanel.jsx'
 import DiagnosticsPanel from './components/DiagnosticsPanel.jsx'
 
 export default function App() {
@@ -23,7 +22,6 @@ export default function App() {
         <Route path="overview" element={<Overview />} />
         <Route path="harness" element={<HarnessPanel />} />
         <Route path="skills" element={<SkillPanel />} />
-        <Route path="marketplace" element={<MarketplacePanel />} />
         <Route path="hooks" element={<HookPanel />} />
         <Route path="plugins" element={<PluginPanel />} />
         <Route path="memories" element={<MemoryPanel />} />
