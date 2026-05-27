@@ -75,6 +75,67 @@ router.get('/', (req, res) => {
   }
 })
 
+router.get('/activity', (req, res) => {
+  try {
+    const activities = []
+    const projectDirs = getProjectDirs()
+
+    // Recent conversations (by file mtime)
+    for (const dir of projectDirs) {
+      const files = fs.readdirSync(dir.fullPath).filter(f => f.endsWith('.jsonl'))
+      for (const f of files) {
+        const stat = fs.statSync(path.join(dir.fullPath, f))
+        activities.push({
+          type: 'conversation',
+          name: f.replace('.jsonl', '').slice(0, 8),
+          project: dir.displayName,
+          time: stat.mtime.toISOString()
+        })
+      }
+    }
+
+    // Recent memory changes
+    for (const dir of projectDirs) {
+      const memDir = path.join(dir.fullPath, 'memory')
+      if (!fs.existsSync(memDir)) continue
+      const files = fs.readdirSync(memDir).filter(f => f.endsWith('.md') && f !== 'MEMORY.md')
+      for (const f of files) {
+        const stat = fs.statSync(path.join(memDir, f))
+        activities.push({
+          type: 'memory',
+          name: f.replace('.md', ''),
+          project: dir.displayName,
+          time: stat.mtime.toISOString()
+        })
+      }
+    }
+
+    // Recent skill changes
+    const skillsDir = path.join(CLAUDE_DIR, 'skills')
+    if (fs.existsSync(skillsDir)) {
+      const dirs = fs.readdirSync(skillsDir).filter(f => {
+        try { return fs.statSync(path.join(skillsDir, f)).isDirectory() } catch { return false }
+      })
+      for (const name of dirs) {
+        const skillFile = path.join(skillsDir, name, 'SKILL.md')
+        if (!fs.existsSync(skillFile)) continue
+        const stat = fs.statSync(skillFile)
+        activities.push({
+          type: 'skill',
+          name,
+          time: stat.mtime.toISOString()
+        })
+      }
+    }
+
+    // Sort by time descending, take top 20
+    activities.sort((a, b) => new Date(b.time) - new Date(a.time))
+    res.json(activities.slice(0, 20))
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
 router.get('/harness', (req, res) => {
   try {
     const result = {}
