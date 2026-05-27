@@ -41,7 +41,7 @@ export default function MarketplacePanel() {
       const res = await fetch('/api/marketplace/install', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url: pack.url })
+        body: JSON.stringify({ url: pack.installUrl || pack.url })
       })
       const data = await res.json()
       if (res.ok) {

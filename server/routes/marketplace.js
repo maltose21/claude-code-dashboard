@@ -14,6 +14,7 @@ const RECOMMENDED_PACKS = [
     author: 'Jesse Vincent (obra)',
     description: '完整的软件开发方法论 — 包含 TDD、系统调试、头脑风暴、计划编写、代码审查、Git Worktree 等 14 个技能，覆盖从需求分析到代码交付的全流程',
     url: 'https://github.com/obra/superpowers',
+    installUrl: 'https://github.com/obra/superpowers/tree/main/skills',
     skills: [
       'brainstorming', 'dispatching-parallel-agents', 'executing-plans',
       'finishing-a-development-branch', 'receiving-code-review', 'requesting-code-review',
