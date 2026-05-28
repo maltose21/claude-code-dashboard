@@ -189,6 +189,16 @@
 
 ---
 
+## 第四轮审计修正（2026-05-28 全量回归审计）
+
+### 28. CLAUDE_CODE_EFFORT_LEVEL 默认值不准确
+- **Dashboard 原始默认值**：「—」
+- **官方事实**：默认值为 `auto`（uses the model default）
+- **官方来源**：https://code.claude.com/docs/en/env-vars — CLAUDE_CODE_EFFORT_LEVEL 行
+- **处理**：✅ 修正默认值为「auto」
+
+---
+
 ## 全面核查通过项（2026-05-28）
 
 ### ✅ 40 个内置工具 — 名称 + 权限(perm)字段

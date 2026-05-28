@@ -142,7 +142,7 @@ const ENV_VARS = {
   '行为控制': [
     { name: 'CLAUDE_CODE_MAX_TURNS', desc: '限制最大 agentic 轮数', default: '无上限' },
     { name: 'CLAUDE_CODE_MAX_OUTPUT_TOKENS', desc: '单回复最大 Token 数', default: '模型默认' },
-    { name: 'CLAUDE_CODE_EFFORT_LEVEL', desc: '推理力度（low/medium/high/xhigh/max/auto）', default: '—' },
+    { name: 'CLAUDE_CODE_EFFORT_LEVEL', desc: '推理力度（low/medium/high/xhigh/max/auto）', default: 'auto' },
     { name: 'CLAUDE_CODE_DISABLE_THINKING', desc: '设为 1 禁用扩展思考', default: '未设置' },
     { name: 'CLAUDE_CODE_DISABLE_AUTO_MEMORY', desc: '设为 1 禁用自动记忆，设为 0 强制开启', default: '未设置' },
     { name: 'CLAUDE_CODE_DISABLE_GIT_INSTRUCTIONS', desc: '设为 1 移除内置 Git 系统提示', default: '未设置' },
