@@ -14,7 +14,7 @@ const BUILTIN_TOOL_CATEGORIES = {
   '执行': [
     { name: 'Bash', desc: '执行 Shell 命令', perm: true },
     { name: 'Monitor', desc: '后台流式监控脚本输出', perm: true },
-    { name: 'PowerShell', desc: '执行 PowerShell 命令（Windows）', perm: true },
+    { name: 'PowerShell', desc: '执行 PowerShell 命令（Windows 默认，其他平台可选）', perm: true },
   ],
   '网络': [
     { name: 'WebFetch', desc: '抓取网页并提取信息', perm: true },
@@ -27,7 +27,7 @@ const BUILTIN_TOOL_CATEGORIES = {
     { name: 'ExitWorktree', desc: '退出 git worktree', perm: false },
   ],
   '任务管理': [
-    { name: 'TaskCreate', desc: '创建后台任务', perm: false },
+    { name: 'TaskCreate', desc: '创建任务（任务列表管理）', perm: false },
     { name: 'TaskGet', desc: '获取任务详情', perm: false },
     { name: 'TaskList', desc: '列出所有任务', perm: false },
     { name: 'TaskUpdate', desc: '更新任务状态', perm: false },
@@ -45,7 +45,7 @@ const BUILTIN_TOOL_CATEGORIES = {
     { name: 'CronCreate', desc: '创建定时/周期任务', perm: false },
     { name: 'CronDelete', desc: '取消定时任务', perm: false },
     { name: 'CronList', desc: '列出定时任务', perm: false },
-    { name: 'ScheduleWakeup', desc: '安排一次性唤醒', perm: false },
+    { name: 'ScheduleWakeup', desc: '为自节奏 /loop 安排下次唤醒', perm: false },
   ],
   'MCP': [
     { name: 'ListMcpResourcesTool', desc: '列出 MCP 服务器资源', perm: false },
@@ -65,8 +65,8 @@ const BUILTIN_TOOL_CATEGORIES = {
 const TOTAL_TOOLS = Object.values(BUILTIN_TOOL_CATEGORIES).reduce((s, a) => s + a.length, 0)
 
 const BUILTIN_SUBAGENTS = [
-  { name: 'Explore', model: 'Haiku', desc: '快速只读代码搜索与探索', tools: '除 Agent/Edit/Write/NotebookEdit 外全部' },
-  { name: 'Plan', model: '继承主会话', desc: '规划模式下的代码库研究', tools: '除 Agent/Edit/Write/NotebookEdit 外全部' },
+  { name: 'Explore', model: 'Haiku', desc: '快速只读代码搜索与探索', tools: '只读工具（无 Write/Edit）' },
+  { name: 'Plan', model: '继承主会话', desc: '规划模式下的代码库研究', tools: '只读工具（无 Write/Edit）' },
   { name: 'general-purpose', model: '继承主会话', desc: '通用研究与多步骤任务执行', tools: '全部工具' },
   { name: 'claude-code-guide', model: 'Haiku', desc: 'Claude Code 使用问答', tools: 'Bash/Read/WebFetch/WebSearch' },
   { name: 'statusline-setup', model: 'Sonnet', desc: '配置终端状态栏', tools: 'Read/Edit' },
@@ -129,31 +129,31 @@ const TOTAL_EVENTS = Object.values(HOOK_EVENT_GROUPS).reduce((s, a) => s + a.len
 
 const ENV_VARS = {
   '模型与后端': [
-    { name: 'ANTHROPIC_API_KEY', desc: 'API 密钥（直连模式）', default: '—' },
-    { name: 'ANTHROPIC_AUTH_TOKEN', desc: '自定义 Authorization 头（第三方网关）', default: '—' },
-    { name: 'ANTHROPIC_MODEL', desc: '覆盖默认模型（可被 --model 和 /model 覆盖）', default: '—' },
-    { name: 'ANTHROPIC_BASE_URL', desc: '自定义 API 端点（代理/网关）', default: 'api.anthropic.com' },
-    { name: 'CLAUDE_CODE_USE_BEDROCK', desc: '使用 AWS Bedrock 后端', default: '0' },
-    { name: 'CLAUDE_CODE_USE_VERTEX', desc: '使用 Google Vertex AI 后端', default: '0' },
-    { name: 'CLAUDE_CODE_USE_FOUNDRY', desc: '使用 Microsoft Foundry 后端', default: '0' },
+    { name: 'ANTHROPIC_API_KEY', desc: 'API 密钥（设置后优先于订阅认证）', default: '—' },
+    { name: 'ANTHROPIC_AUTH_TOKEN', desc: '自定义 Authorization 头（自动加 Bearer 前缀）', default: '—' },
+    { name: 'ANTHROPIC_MODEL', desc: '设置使用的模型名称', default: '—' },
+    { name: 'ANTHROPIC_BASE_URL', desc: '自定义 API 端点（代理/网关）', default: '—' },
+    { name: 'CLAUDE_CODE_USE_BEDROCK', desc: '使用 AWS Bedrock 后端', default: '未设置' },
+    { name: 'CLAUDE_CODE_USE_VERTEX', desc: '使用 Google Vertex AI 后端', default: '未设置' },
+    { name: 'CLAUDE_CODE_USE_FOUNDRY', desc: '使用 Microsoft Foundry 后端', default: '未设置' },
     { name: 'CLAUDE_CODE_API_KEY_HELPER', desc: 'API 密钥获取命令', default: '—' },
     { name: 'CLAUDE_CODE_API_KEY_HELPER_TTL_MS', desc: '密钥刷新间隔（毫秒）', default: '—' },
   ],
   '行为控制': [
-    { name: 'CLAUDE_CODE_MAX_TURNS', desc: '非交互模式最大轮数', default: '无上限' },
+    { name: 'CLAUDE_CODE_MAX_TURNS', desc: '限制最大 agentic 轮数', default: '无上限' },
     { name: 'CLAUDE_CODE_MAX_OUTPUT_TOKENS', desc: '单回复最大 Token 数', default: '模型默认' },
     { name: 'CLAUDE_CODE_EFFORT_LEVEL', desc: '推理力度（low/medium/high/xhigh/max/auto）', default: '—' },
-    { name: 'CLAUDE_CODE_DISABLE_THINKING', desc: '禁用扩展思考', default: '0' },
-    { name: 'CLAUDE_CODE_DISABLE_AUTO_MEMORY', desc: '禁用自动记忆', default: '0' },
-    { name: 'CLAUDE_CODE_DISABLE_GIT_INSTRUCTIONS', desc: '禁用内置 Git 系统提示', default: '0' },
-    { name: 'CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC', desc: '禁用更新/反馈/遥测等非必要流量', default: '0' },
-    { name: 'CLAUDE_CODE_FORK_SUBAGENT', desc: '启用 fork 子代理继承对话上下文', default: '0' },
+    { name: 'CLAUDE_CODE_DISABLE_THINKING', desc: '设为 1 禁用扩展思考', default: '未设置' },
+    { name: 'CLAUDE_CODE_DISABLE_AUTO_MEMORY', desc: '设为 1 禁用自动记忆，设为 0 强制开启', default: '未设置' },
+    { name: 'CLAUDE_CODE_DISABLE_GIT_INSTRUCTIONS', desc: '设为 1 移除内置 Git 系统提示', default: '未设置' },
+    { name: 'CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC', desc: '等效禁用更新/反馈/错误报告/遥测', default: '未设置' },
+    { name: 'CLAUDE_CODE_FORK_SUBAGENT', desc: '设为 1 启用 fork 子代理继承对话上下文', default: '未设置' },
   ],
   '网络与遥测': [
     { name: 'HTTP_PROXY', desc: 'HTTP 代理地址', default: '—' },
     { name: 'HTTPS_PROXY', desc: 'HTTPS 代理地址', default: '—' },
-    { name: 'CLAUDE_CODE_ENABLE_TELEMETRY', desc: '启用 OpenTelemetry 遥测', default: '0' },
-    { name: 'DISABLE_AUTOUPDATER', desc: '禁用自动更新', default: '0' },
+    { name: 'CLAUDE_CODE_ENABLE_TELEMETRY', desc: '设为 1 启用 OpenTelemetry 数据收集', default: '未设置' },
+    { name: 'DISABLE_AUTOUPDATER', desc: '禁用自动更新', default: '未设置' },
     { name: 'BASH_DEFAULT_TIMEOUT_MS', desc: 'Bash 默认超时（毫秒）', default: '120000' },
     { name: 'BASH_MAX_TIMEOUT_MS', desc: 'Bash 最大超时上限（毫秒）', default: '600000' },
   ],
@@ -177,7 +177,7 @@ const SLASH_COMMANDS = {
   '模型与模式': [
     { name: '/model', desc: '切换 AI 模型' },
     { name: '/effort', desc: '调整推理力度（low~max）' },
-    { name: '/fast', desc: '切换 Opus 快速输出模式' },
+    { name: '/fast', desc: '切换 fast mode（快速输出模式）' },
     { name: '/plan', desc: '进入规划模式' },
     { name: '/focus', desc: '切换精简视图（全屏模式）' },
     { name: '/diff', desc: '交互式查看未提交变更' },
@@ -218,6 +218,10 @@ const SLASH_COMMANDS = {
     { name: '/feedback', desc: '提交反馈或报告 Bug', alias: '/bug, /share' },
     { name: '/status', desc: '查看版本、模型、连接等状态' },
     { name: '/release-notes', desc: '查看更新日志' },
+    { name: '/review', desc: '本地审查 Pull Request' },
+    { name: '/security-review', desc: '分析当前分支的安全漏洞' },
+    { name: '/ultraplan', desc: '云端深度规划' },
+    { name: '/ultrareview', desc: '云端多代理深度代码审查' },
   ],
   '账号与平台': [
     { name: '/login', desc: '登录 Anthropic 账号' },
@@ -258,10 +262,6 @@ const SLASH_COMMANDS = {
     { name: '/loop', desc: '循环执行任务（可自定间隔或自动节奏）', skill: true, alias: '/proactive' },
     { name: '/claude-api', desc: '加载 Claude API 参考（migrate/managed-agents-onboard）', skill: true },
     { name: '/fewer-permission-prompts', desc: '扫描历史自动添加权限白名单', skill: true },
-    { name: '/review', desc: '本地审查 Pull Request', skill: true },
-    { name: '/security-review', desc: '分析当前分支的安全漏洞', skill: true },
-    { name: '/ultraplan', desc: '云端深度规划', skill: true },
-    { name: '/ultrareview', desc: '云端多代理深度代码审查', skill: true },
   ],
 }
 

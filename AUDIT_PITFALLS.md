@@ -3,7 +3,7 @@
 > 本文件记录所有在历次审计中发现的分歧点，每个点标注核实状态和官方来源。
 > 唯一可信来源：https://code.claude.com/docs
 
-## 历史分歧点（已修正）
+## 第一轮审计修正（2026-05-28 数量级审计）
 
 ### 1. 「官方6层架构」
 - **Dashboard 声称**：Harness 按官方 6 层架构（输入/知识/执行/集成/多智能体/可观测）可视化
@@ -26,16 +26,16 @@
 - **处理**：✅ Dashboard 没有声称是官方规范，描述为「建议包含」
 
 ### 4. 环境变量 ANTHROPIC_MODEL 描述不准确
-- **Dashboard 声称**：「覆盖默认模型（单次会话）」
-- **官方事实**：Overridden by --model and /model，无"单次会话"限制
+- **Dashboard 原始描述**：「覆盖默认模型（单次会话）」
+- **官方事实**：Name of the model setting to use
 - **官方来源**：https://code.claude.com/docs/en/env-vars
-- **处理**：✅ 已修正为「覆盖默认模型（可被 --model 和 /model 覆盖）」
+- **处理**：✅ 已修正为「设置使用的模型名称」
 
 ### 5. 环境变量 CLAUDE_CODE_MAX_TURNS 默认值不准确
 - **Dashboard 声称**：默认值为 Infinity
-- **官方事实**：官方文档未给出数字默认值，描述为"no cap"
+- **官方事实**：官方文档未给出数字默认值，无 cap
 - **官方来源**：https://code.claude.com/docs/en/env-vars
-- **处理**：✅ 已修正为「无上限」
+- **处理**：✅ 已修正默认值为「无上限」
 
 ### 6. 环境变量总数展示误导
 - **Dashboard 声称**：UI 展示「23 个」环境变量，暗示完整列表
@@ -45,52 +45,112 @@
 
 ---
 
-## 全面核查结果（2026-05-28）
+## 第二轮审计修正（2026-05-28 逐字段描述审计）
 
-### ✅ 40 个内置工具
-- **Dashboard 数量**：40 个
-- **核查方式**：通过 Python 集合对比 Dashboard 工具名与 Claude Code 运行时系统提示中的工具名
-- **结果**：精确匹配，40 个工具名一一对应
-- **官方来源**：https://code.claude.com/docs/en/tools （工具列表参考）
-- **工具分类**：文件操作(7) / 执行(3) / 网络(2) / 规划与工作树(4) / 任务管理(7) / 代理与团队(4) / 调度(4) / MCP(4) / UI与其他(5)
+### 7. PowerShell 工具描述不完整
+- **Dashboard 原始描述**：「执行 PowerShell 命令（Windows）」
+- **官方事实**：PowerShell 在 Windows 默认启用，Linux/macOS/WSL 上可选启用（需 PowerShell 7+）
+- **官方来源**：https://code.claude.com/docs/en/tools#powershell-tool
+- **处理**：✅ 修正为「执行 PowerShell 命令（Windows 默认，其他平台可选）」
 
-### ✅ 30 种 Hook 事件
-- **Dashboard 数量**：30 个事件
-- **核查方式**：通过 Python 集合对比 Dashboard 事件名与官方文档列出的事件名
-- **结果**：精确匹配，30 个事件名一一对应
+### 8. TaskCreate 工具描述错误
+- **Dashboard 原始描述**：「创建后台任务」
+- **官方事实**：Creates a new task in the task list（任务列表管理，非后台任务）
+- **官方来源**：https://code.claude.com/docs/en/tools — TaskCreate 行
+- **处理**：✅ 修正为「创建任务（任务列表管理）」
+
+### 9. ScheduleWakeup 工具描述错误
+- **Dashboard 原始描述**：「安排一次性唤醒」
+- **官方事实**：Reschedules the next iteration of a self-paced /loop（专为 /loop 自节奏模式设计，不是通用一次性唤醒）
+- **官方来源**：https://code.claude.com/docs/en/tools — ScheduleWakeup 行
+- **处理**：✅ 修正为「为自节奏 /loop 安排下次唤醒」
+
+### 10. Explore/Plan 子代理工具列表描述不准确
+- **Dashboard 原始描述**：「除 Agent/Edit/Write/NotebookEdit 外全部」
+- **官方事实**：Read-only tools (denied access to Write and Edit tools)。官方用"只读工具"概括，未逐一列出排除项
+- **官方来源**：https://code.claude.com/docs/en/sub-agents — Built-in subagents → Explore/Plan tabs
+- **处理**：✅ 修正为「只读工具（无 Write/Edit）」，匹配官方措辞
+
+### 11. ANTHROPIC_BASE_URL 默认值不准确
+- **Dashboard 原始默认值**：「api.anthropic.com」
+- **官方事实**：官方文档未列出默认值
+- **官方来源**：https://code.claude.com/docs/en/env-vars — ANTHROPIC_BASE_URL 行
+- **处理**：✅ 修正默认值为「—」
+
+### 12. CLAUDE_CODE_MAX_TURNS 描述不准确
+- **Dashboard 原始描述**：「非交互模式最大轮数」
+- **官方事实**：Cap the number of agentic turns when no explicit limit is passed（不限于非交互模式）
+- **官方来源**：https://code.claude.com/docs/en/env-vars — CLAUDE_CODE_MAX_TURNS 行
+- **处理**：✅ 修正为「限制最大 agentic 轮数」
+
+### 13. 多个环境变量默认值错误
+- **涉及变量**：CLAUDE_CODE_USE_BEDROCK/VERTEX/FOUNDRY、CLAUDE_CODE_DISABLE_THINKING、CLAUDE_CODE_DISABLE_AUTO_MEMORY、CLAUDE_CODE_DISABLE_GIT_INSTRUCTIONS、CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC、CLAUDE_CODE_FORK_SUBAGENT、CLAUDE_CODE_ENABLE_TELEMETRY、DISABLE_AUTOUPDATER
+- **Dashboard 原始默认值**：「0」
+- **官方事实**：官方文档标注为 "Not set"（未设置）。对于布尔型环境变量，"未设置"和"设为 0"语义不同——例如 CLAUDE_CODE_DISABLE_AUTO_MEMORY 设为 0 会**强制开启**自动记忆
+- **官方来源**：https://code.claude.com/docs/en/env-vars
+- **处理**：✅ 统一修正默认值为「未设置」
+
+### 14. ANTHROPIC_API_KEY 描述不准确
+- **Dashboard 原始描述**：「API 密钥（直连模式）」
+- **官方事实**：API key sent as X-Api-Key header. When set, this key is used instead of your Claude Pro, Max, Team, or Enterprise subscription
+- **官方来源**：https://code.claude.com/docs/en/env-vars — ANTHROPIC_API_KEY 行
+- **处理**：✅ 修正为「API 密钥（设置后优先于订阅认证）」
+
+### 15. ANTHROPIC_AUTH_TOKEN 描述不准确
+- **Dashboard 原始描述**：「自定义 Authorization 头（第三方网关）」
+- **官方事实**：Custom value for the Authorization header (the value you set here will be prefixed with Bearer). 无"第三方网关"限定
+- **官方来源**：https://code.claude.com/docs/en/env-vars — ANTHROPIC_AUTH_TOKEN 行
+- **处理**：✅ 修正为「自定义 Authorization 头（自动加 Bearer 前缀）」
+
+### 16. CLAUDE_CODE_DISABLE_AUTO_MEMORY 描述不完整
+- **Dashboard 原始描述**：「禁用自动记忆」
+- **官方事实**：Set to 1 to disable auto memory. Set to 0 to force auto memory on even when --bare mode or autoMemoryEnabled: false would otherwise disable it
+- **官方来源**：https://code.claude.com/docs/en/env-vars — CLAUDE_CODE_DISABLE_AUTO_MEMORY 行
+- **处理**：✅ 修正为「设为 1 禁用自动记忆，设为 0 强制开启」
+
+### 17. /fast 描述不准确
+- **Dashboard 原始描述**：「切换 Opus 快速输出模式」
+- **官方事实**：Toggle fast mode on or off（未限定为 Opus）
+- **官方来源**：https://code.claude.com/docs/en/commands — /fast 行
+- **处理**：✅ 修正为「切换 fast mode（快速输出模式）」
+
+### 18. /review、/security-review、/ultraplan、/ultrareview 错误标记为 Bundled Skill
+- **Dashboard 原始标记**：skill: true，放在「技能（Bundled Skills）」分组
+- **官方事实**：官方 commands 页面中这 4 个命令**未标记** [Skill]，是内置命令而非 bundled skill
+- **官方来源**：https://code.claude.com/docs/en/commands — 对应行均无 [Skill] 标记
+- **处理**：✅ 移除 skill 标记，移至「工具与诊断」分组
+
+---
+
+## 全面核查通过项（2026-05-28）
+
+### ✅ 40 个内置工具 — 名称 + 权限(perm)字段
+- **核查方式**：逐个对比官方 tools 页面表格 "Permission Required" 列
+- **结果**：40 个工具名精确匹配，40 个权限标记全部正确
+- **官方来源**：https://code.claude.com/docs/en/tools
+
+### ✅ 30 种 Hook 事件 — 名称 + 描述 + canBlock 字段
+- **核查方式**：逐个对比官方 hooks 页面事件表 "Can Block" 列
+- **结果**：30 个事件名精确匹配，所有 canBlock 标记正确
 - **官方来源**：https://code.claude.com/docs/en/hooks
-- **官方段落**：Hooks 页面 "Hook events" 章节，列出全部 30 个事件（SessionStart 到 SessionEnd）
 
 ### ✅ 5 种 Hook 处理器类型
 - **Dashboard 声称**：command / http / mcp_tool / prompt / agent
-- **官方事实**：完全一致，5 种处理器类型
-- **官方来源**：https://code.claude.com/docs/en/hooks
-- **官方段落**：Hooks 页面 "Hook handler types" 章节明确列出 command, http, mcp_tool, prompt, agent
+- **结果**：完全一致
+- **官方来源**：https://code.claude.com/docs/en/hooks — "Hook handler types" 章节
 
-### ✅ 5 种子代理
-- **Dashboard 声称**：Explore(Haiku) / Plan(继承) / general-purpose(继承) / claude-code-guide(Haiku) / statusline-setup(Sonnet)
-- **官方事实**：完全一致
-- **官方来源**：https://code.claude.com/docs/en/sub-agents
-- **官方段落**：Sub-agents 页面 "Built-in subagents" 章节 Tabs 中分别描述了 Explore(Haiku)、Plan(Inherits)、General-purpose(Inherits)、claude-code-guide(Haiku)、statusline-setup(Sonnet)
+### ✅ 5 种子代理 — 名称 + 模型
+- **结果**：Explore(Haiku) / Plan(继承) / general-purpose(继承) / claude-code-guide(Haiku) / statusline-setup(Sonnet) 全部匹配
+- **官方来源**：https://code.claude.com/docs/en/sub-agents — "Built-in subagents" 章节
 
-### ✅ 89 个斜杠命令
-- **Dashboard 数量**：89 个
-- **核查方式**：逐一对比官方 commands 页面表格
-- **计数说明**：官方 92 行 - 2 已移除(/pr-comments, /vim) - 2 别名独立行(/cost, /stats) + 1 bundled skill(/simplify 不在表格但可用) = 89
+### ✅ 89 个斜杠命令 — 名称 + 别名
+- **结果**：命令名和别名全部匹配
 - **官方来源**：https://code.claude.com/docs/en/commands
-- **处理**：UI 已标注计数口径
-
-### ✅ 23 个常用环境变量
-- **Dashboard 数量**：23 个（标注为"常用"）
-- **核查方式**：逐个比对变量名、描述、默认值与官方文档
-- **结果**：23 个变量名均存在于官方文档，描述和默认值均已修正至准确
-- **官方来源**：https://code.claude.com/docs/en/env-vars
 
 ### ✅ MCP 传输类型
 - **Dashboard/README 声称**：Stdio / HTTP / Streamable-HTTP / SSE
-- **官方事实**：stdio（默认）、http（含 streamable-http 别名）、sse（已弃用）
+- **结果**：准确
 - **官方来源**：https://code.claude.com/docs/en/mcp
-- **说明**：Dashboard 列出的 4 种类型准确，其中 Streamable-HTTP 是 HTTP 的别名（JSON 配置中 type 字段可设为 "streamable-http"，等同于 "http"），SSE 为已弃用但仍支持的传输方式
 
 ---
 
@@ -104,6 +164,7 @@
 ### 核查方式
 - 数量类声称：通过 Python 脚本做集合对比（set difference），确保零差集
 - 描述类声称：逐字段对比官方文档原文
+- 权限/标记类声称：逐行对比官方表格对应列
 - 结构类声称（如"6层架构"）：搜索官方文档确认是否使用对应术语
 
 ### 易错模式
@@ -111,3 +172,7 @@
 2. **近似数量**：用约数（"约 90 个"）代替精确计数 → 必须精确到个位并标注口径
 3. **术语归属**：将 Dashboard 自己的归纳称为"官方"概念 → 必须明确区分
 4. **选择性展示**：展示部分数据暗示完整性 → 必须标注"常用 X 个"并链接完整列表
+5. **默认值臆想**：布尔型环境变量默认写"0" → 官方实际标注"Not set"，语义不同
+6. **分类错误**：将内置命令标记为 bundled skill → 必须以官方 [Skill] 标记为准
+7. **平台限定错误**：工具描述限定"仅 Windows" → 实际跨平台可用（如 PowerShell）
+8. **功能范围错误**：将专用工具描述为通用工具 → 如 ScheduleWakeup 仅用于 /loop
