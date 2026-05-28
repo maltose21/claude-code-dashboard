@@ -13,7 +13,7 @@ const BUILTIN_TOOL_CATEGORIES = {
   ],
   '执行': [
     { name: 'Bash', desc: '执行 Shell 命令', perm: true },
-    { name: 'Monitor', desc: '后台流式监控脚本输出', perm: true },
+    { name: 'Monitor', desc: '后台运行脚本并将输出回传给 Claude 响应', perm: true },
     { name: 'PowerShell', desc: '执行 PowerShell 命令（Windows 默认，其他平台可选）', perm: true },
   ],
   '网络': [
@@ -21,7 +21,7 @@ const BUILTIN_TOOL_CATEGORIES = {
     { name: 'WebSearch', desc: '网络搜索', perm: true },
   ],
   '规划与工作树': [
-    { name: 'EnterPlanMode', desc: '进入只读规划模式', perm: false },
+    { name: 'EnterPlanMode', desc: '进入规划模式（设计方案后再编码）', perm: false },
     { name: 'ExitPlanMode', desc: '提交计划并退出规划模式', perm: true },
     { name: 'EnterWorktree', desc: '创建/进入 git worktree', perm: false },
     { name: 'ExitWorktree', desc: '退出 git worktree', perm: false },
@@ -30,19 +30,19 @@ const BUILTIN_TOOL_CATEGORIES = {
     { name: 'TaskCreate', desc: '创建任务（任务列表管理）', perm: false },
     { name: 'TaskGet', desc: '获取任务详情', perm: false },
     { name: 'TaskList', desc: '列出所有任务', perm: false },
-    { name: 'TaskUpdate', desc: '更新任务状态', perm: false },
+    { name: 'TaskUpdate', desc: '更新任务状态/依赖/详情或删除任务', perm: false },
     { name: 'TaskStop', desc: '停止后台任务', perm: false },
     { name: 'TaskOutput', desc: '获取后台任务输出（已弃用，改用 Read）', perm: false, deprecated: true },
     { name: 'TodoWrite', desc: '管理会话待办列表（默认禁用）', perm: false, disabled: true },
   ],
   '代理与团队': [
     { name: 'Agent', desc: '启动子代理处理任务', perm: false },
-    { name: 'SendMessage', desc: '向团队代理发送消息', perm: false },
+    { name: 'SendMessage', desc: '向团队代理发送消息或恢复子代理', perm: false },
     { name: 'TeamCreate', desc: '创建代理团队', perm: false },
     { name: 'TeamDelete', desc: '删除代理团队', perm: false },
   ],
   '调度': [
-    { name: 'CronCreate', desc: '创建定时/周期任务', perm: false },
+    { name: 'CronCreate', desc: '创建定时/周期任务（会话级）', perm: false },
     { name: 'CronDelete', desc: '取消定时任务', perm: false },
     { name: 'CronList', desc: '列出定时任务', perm: false },
     { name: 'ScheduleWakeup', desc: '为自节奏 /loop 安排下次唤醒', perm: false },
@@ -50,7 +50,7 @@ const BUILTIN_TOOL_CATEGORIES = {
   'MCP': [
     { name: 'ListMcpResourcesTool', desc: '列出 MCP 服务器资源', perm: false },
     { name: 'ReadMcpResourceTool', desc: '读取 MCP 资源', perm: false },
-    { name: 'ToolSearch', desc: '搜索可用工具', perm: false },
+    { name: 'ToolSearch', desc: '搜索并加载延迟工具', perm: false },
     { name: 'WaitForMcpServers', desc: '等待 MCP 服务器就绪', perm: false },
   ],
   'UI 与其他': [
@@ -88,7 +88,7 @@ const HOOK_EVENT_GROUPS = {
     { name: 'PostToolUseFailure', desc: '工具执行失败后' },
     { name: 'PostToolBatch', desc: '批量工具调用完成后', canBlock: true },
     { name: 'PermissionRequest', desc: '请求权限时', canBlock: true },
-    { name: 'PermissionDenied', desc: '权限被拒绝时' },
+    { name: 'PermissionDenied', desc: '工具被 auto 模式分类器拒绝时' },
   ],
   '代理与任务': [
     { name: 'SubagentStart', desc: '子代理启动' },
@@ -180,7 +180,7 @@ const SLASH_COMMANDS = {
     { name: '/fast', desc: '切换 fast mode（快速输出模式）' },
     { name: '/plan', desc: '进入规划模式' },
     { name: '/focus', desc: '切换精简视图（全屏模式）' },
-    { name: '/diff', desc: '交互式查看未提交变更' },
+    { name: '/diff', desc: '交互式查看未提交变更和逐 turn diff' },
     { name: '/sandbox', desc: '切换沙盒模式' },
     { name: '/tui', desc: '设置终端 UI 渲染器（default/fullscreen）' },
   ],
@@ -243,7 +243,7 @@ const SLASH_COMMANDS = {
     { name: '/teleport', desc: '将网页会话拉入终端', alias: '/tp' },
     { name: '/web-setup', desc: '连接 GitHub 到 Claude Code 网页版' },
     { name: '/remote-env', desc: '配置远程环境' },
-    { name: '/autofix-pr', desc: '自动修复 PR 的 CI 失败和评审意见' },
+    { name: '/autofix-pr', desc: '启动云端会话自动修复 PR 的 CI 失败和评审意见' },
     { name: '/install-github-app', desc: '安装 Claude GitHub Actions 应用' },
     { name: '/install-slack-app', desc: '安装 Claude Slack 应用' },
     { name: '/team-onboarding', desc: '生成团队 onboarding 指南' },

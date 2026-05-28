@@ -122,6 +122,73 @@
 
 ---
 
+## 第三轮审计修正（2026-05-28 功能描述准确性审计）
+
+### 19. EnterPlanMode 描述不准确
+- **Dashboard 原始描述**：「进入规划模式（只读探索代码库）」
+- **官方事实**：Switches to plan mode to design an approach before coding
+- **问题**：官方重点是「设计方案后再编码」，不是「只读探索」。规划模式的核心功能是设计实现方案
+- **官方来源**：https://code.claude.com/docs/en/tools — EnterPlanMode 行
+- **处理**：✅ 修正为「进入规划模式（设计方案后再编码）」
+
+### 20. Monitor 描述不完整
+- **Dashboard 原始描述**：「后台运行脚本并监控输出」
+- **官方事实**：Runs a command in the background and feeds each output line back to Claude, so it can react to log entries, file changes, or polled status mid-conversation
+- **问题**：缺少关键语义——输出回传给 Claude 以便 Claude 响应（react）。不是静默监控，是 Claude 收到输出后能主动反应
+- **官方来源**：https://code.claude.com/docs/en/tools — Monitor 行
+- **处理**：✅ 修正为「后台运行脚本并将输出回传给 Claude 响应」
+
+### 21. SendMessage 描述不完整
+- **Dashboard 原始描述**：「向子代理发送消息」
+- **官方事实**：Sends a message to an agent team teammate, or resumes a subagent by its agent ID
+- **问题**：遗漏了两个关键功能——(1) 面向 agent team teammate（团队代理），不只是子代理；(2) 恢复子代理（resumes a subagent）
+- **官方来源**：https://code.claude.com/docs/en/tools — SendMessage 行
+- **处理**：✅ 修正为「向团队代理发送消息或恢复子代理」
+
+### 22. ToolSearch 描述不完整
+- **Dashboard 原始描述**：「搜索可用工具」
+- **官方事实**：Searches for and loads deferred tools when tool search is enabled
+- **问题**：遗漏了核心功能——不仅搜索还会「加载延迟工具」（loads deferred tools）
+- **官方来源**：https://code.claude.com/docs/en/tools — ToolSearch 行
+- **处理**：✅ 修正为「搜索并加载延迟工具」
+
+### 23. CronCreate 描述不完整
+- **Dashboard 原始描述**：「创建定时任务」
+- **官方事实**：Schedules a recurring or one-shot prompt within the current session. Tasks are session-scoped and restored on --resume or --continue if unexpired
+- **问题**：遗漏了关键属性——支持周期和一次性、会话级作用域
+- **官方来源**：https://code.claude.com/docs/en/tools — CronCreate 行
+- **处理**：✅ 修正为「创建定时/周期任务（会话级）」
+
+### 24. TaskUpdate 描述不完整
+- **Dashboard 原始描述**：「更新任务状态」
+- **官方事实**：Updates task status, dependencies, details, or deletes tasks
+- **问题**：遗漏了可更新的维度——依赖、详情、删除操作
+- **官方来源**：https://code.claude.com/docs/en/tools — TaskUpdate 行
+- **处理**：✅ 修正为「更新任务状态/依赖/详情或删除任务」
+
+### 25. PermissionDenied Hook 事件描述不准确
+- **Dashboard 原始描述**：「权限请求被拒」
+- **官方事实**：When a tool call is denied by the auto mode classifier
+- **问题**：不是通用的「权限请求被拒」，而是特指「被 auto 模式分类器拒绝」
+- **官方来源**：https://code.claude.com/docs/en/hooks — PermissionDenied 行
+- **处理**：✅ 修正为「工具被 auto 模式分类器拒绝时」
+
+### 26. /diff 命令描述不完整
+- **Dashboard 原始描述**：「查看未提交变更的 diff」
+- **官方事实**：Open an interactive diff viewer showing uncommitted changes and per-turn diffs. Use left/right arrows to switch between the current git diff and individual Claude turns
+- **问题**：遗漏了核心功能——交互式查看 + 逐 turn diff（不只是 git diff）
+- **官方来源**：https://code.claude.com/docs/en/commands — /diff 行
+- **处理**：✅ 修正为「交互式查看未提交变更和逐 turn diff」
+
+### 27. /autofix-pr 命令描述不准确
+- **Dashboard 原始描述**：「自动修复 PR 的 CI 失败」
+- **官方事实**：Spawn a Claude Code on the web session that watches the current branch's PR and pushes fixes when CI fails or reviewers leave comments
+- **问题**：(1) 是启动云端会话（Claude Code on the web），不是本地操作；(2) 不只修 CI 失败，还修评审意见
+- **官方来源**：https://code.claude.com/docs/en/commands — /autofix-pr 行
+- **处理**：✅ 修正为「启动云端会话自动修复 PR 的 CI 失败和评审意见」
+
+---
+
 ## 全面核查通过项（2026-05-28）
 
 ### ✅ 40 个内置工具 — 名称 + 权限(perm)字段
@@ -176,3 +243,6 @@
 6. **分类错误**：将内置命令标记为 bundled skill → 必须以官方 [Skill] 标记为准
 7. **平台限定错误**：工具描述限定"仅 Windows" → 实际跨平台可用（如 PowerShell）
 8. **功能范围错误**：将专用工具描述为通用工具 → 如 ScheduleWakeup 仅用于 /loop
+9. **功能遗漏**：只描述工具的一半功能 → 如 SendMessage 既发消息又恢复子代理，ToolSearch 既搜索又加载
+10. **触发条件模糊化**：将特定触发条件泛化 → 如 PermissionDenied 仅限 auto 模式分类器拒绝，不是通用权限拒绝
+11. **执行环境缺失**：遗漏工具的执行环境属性 → 如 /autofix-pr 是云端会话（非本地），CronCreate 是会话级（非持久）
