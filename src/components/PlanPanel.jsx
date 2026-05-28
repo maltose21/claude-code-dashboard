@@ -65,7 +65,7 @@ export default function PlanPanel() {
             {plans.map(plan => (
               <div
                 key={plan.filename}
-                className={`bg-white rounded-2xl shadow-sm border p-5 cursor-pointer transition-all hover:shadow-md ${
+                className={`bg-white rounded-2xl shadow-sm border p-5 cursor-pointer transition-all hover:shadow-md group ${
                   selected === plan.filename ? 'border-blue-300 ring-2 ring-blue-100' : 'border-gray-100'
                 }`}
                 onClick={() => loadDetail(plan.filename)}
@@ -108,9 +108,7 @@ export default function PlanPanel() {
                 删除
               </button>
             </div>
-            <pre className="text-[12px] text-gray-600 whitespace-pre-wrap bg-gray-50 rounded-xl p-4 max-h-[500px] overflow-y-auto font-mono">
-              {detail.content}
-            </pre>
+            <pre className="text-[12px] text-gray-600 whitespace-pre-wrap bg-gray-50 rounded-xl p-4 max-h-[500px] overflow-y-auto font-mono">{detail.content}</pre>
           </div>
         )}
       </div>

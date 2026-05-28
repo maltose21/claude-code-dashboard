@@ -49,6 +49,9 @@ export default function PluginPanel() {
         <h2 className="text-2xl font-semibold text-gray-900 mb-1">插件管理</h2>
         <p className="text-gray-500 text-sm mb-6">共 {plugins.length} 个已安装插件</p>
 
+        {plugins.length === 0 ? (
+          <div className="text-center py-16 text-gray-400 text-sm">暂无已安装插件</div>
+        ) : (
         <div className="space-y-3">
           {plugins.map(plugin => (
             <div key={plugin.name} className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 flex items-center gap-4">
@@ -82,6 +85,7 @@ export default function PluginPanel() {
             </div>
           ))}
         </div>
+        )}
       </div>
 
       <ConfirmDialog

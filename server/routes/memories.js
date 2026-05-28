@@ -2,6 +2,7 @@ import { Router } from 'express'
 import fs from 'fs'
 import path from 'path'
 import { getProjectDirs, parseFrontmatter } from '../utils/parser.js'
+import { ensureWithin } from '../utils/security.js'
 
 const router = Router()
 const CLAUDE_DIR = path.join(process.env.HOME, '.claude')
@@ -57,7 +58,7 @@ router.put('/:projectDir/:filename', (req, res) => {
     if (!content) return res.status(400).json({ error: '缺少 content' })
 
     const memoryDir = path.join(CLAUDE_DIR, 'projects', projectDir, 'memory')
-    const filePath = path.join(memoryDir, filename)
+    const filePath = ensureWithin(memoryDir, filename)
     if (!fs.existsSync(filePath)) return res.status(404).json({ error: '记忆文件不存在' })
 
     fs.writeFileSync(filePath, content, 'utf-8')
@@ -71,7 +72,7 @@ router.delete('/:projectDir/:filename', (req, res) => {
   try {
     const { projectDir, filename } = req.params
     const memoryDir = path.join(CLAUDE_DIR, 'projects', projectDir, 'memory')
-    const filePath = path.join(memoryDir, filename)
+    const filePath = ensureWithin(memoryDir, filename)
     if (!fs.existsSync(filePath)) return res.status(404).json({ error: '记忆文件不存在' })
 
     fs.unlinkSync(filePath)
@@ -100,7 +101,7 @@ router.post('/', (req, res) => {
     if (!fs.existsSync(memoryDir)) fs.mkdirSync(memoryDir, { recursive: true })
 
     const safeName = filename.replace(/[^a-zA-Z0-9_-]/g, '-').replace(/\.md$/, '') + '.md'
-    const filePath = path.join(memoryDir, safeName)
+    const filePath = ensureWithin(memoryDir, safeName)
     fs.writeFileSync(filePath, content, 'utf-8')
 
     const indexPath = path.join(memoryDir, 'MEMORY.md')

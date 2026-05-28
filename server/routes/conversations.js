@@ -88,6 +88,7 @@ router.get('/:id', (req, res) => {
         return res.json({
           id,
           project: project.displayName,
+          projectDir: project.dirName,
           messages
         })
       }

@@ -65,8 +65,8 @@ const BUILTIN_TOOL_CATEGORIES = {
 const TOTAL_TOOLS = Object.values(BUILTIN_TOOL_CATEGORIES).reduce((s, a) => s + a.length, 0)
 
 const BUILTIN_SUBAGENTS = [
-  { name: 'Explore', model: 'Haiku', desc: '快速只读代码搜索与探索', tools: '只读工具' },
-  { name: 'Plan', model: '继承主会话', desc: '规划模式下的代码库研究', tools: '只读工具' },
+  { name: 'Explore', model: 'Haiku', desc: '快速只读代码搜索与探索', tools: '除 Agent/Edit/Write/NotebookEdit 外全部' },
+  { name: 'Plan', model: '继承主会话', desc: '规划模式下的代码库研究', tools: '除 Agent/Edit/Write/NotebookEdit 外全部' },
   { name: 'general-purpose', model: '继承主会话', desc: '通用研究与多步骤任务执行', tools: '全部工具' },
   { name: 'claude-code-guide', model: 'Haiku', desc: 'Claude Code 使用问答', tools: 'Bash/Read/WebFetch/WebSearch' },
   { name: 'statusline-setup', model: 'Sonnet', desc: '配置终端状态栏', tools: 'Read/Edit' },
@@ -100,6 +100,7 @@ const HOOK_EVENT_GROUPS = {
   '回复': [
     { name: 'Stop', desc: 'Claude 停止生成', canBlock: true },
     { name: 'StopFailure', desc: 'API 错误终止' },
+    { name: 'MessageDisplay', desc: '消息显示到终端（仅展示层，不可阻止）' },
   ],
   '配置': [
     { name: 'InstructionsLoaded', desc: 'CLAUDE.md/规则加载' },
@@ -125,6 +126,144 @@ const HOOK_EVENT_GROUPS = {
 }
 
 const TOTAL_EVENTS = Object.values(HOOK_EVENT_GROUPS).reduce((s, a) => s + a.length, 0)
+
+const ENV_VARS = {
+  '模型与后端': [
+    { name: 'ANTHROPIC_API_KEY', desc: 'API 密钥（直连模式）', default: '—' },
+    { name: 'ANTHROPIC_AUTH_TOKEN', desc: '自定义 Authorization 头（第三方网关）', default: '—' },
+    { name: 'ANTHROPIC_MODEL', desc: '覆盖默认模型（单次会话）', default: '—' },
+    { name: 'ANTHROPIC_BASE_URL', desc: '自定义 API 端点（代理/网关）', default: 'api.anthropic.com' },
+    { name: 'CLAUDE_CODE_USE_BEDROCK', desc: '使用 AWS Bedrock 后端', default: '0' },
+    { name: 'CLAUDE_CODE_USE_VERTEX', desc: '使用 Google Vertex AI 后端', default: '0' },
+    { name: 'CLAUDE_CODE_USE_FOUNDRY', desc: '使用 Microsoft Foundry 后端', default: '0' },
+    { name: 'CLAUDE_CODE_API_KEY_HELPER', desc: 'API 密钥获取命令', default: '—' },
+    { name: 'CLAUDE_CODE_API_KEY_HELPER_TTL_MS', desc: '密钥刷新间隔（毫秒）', default: '—' },
+  ],
+  '行为控制': [
+    { name: 'CLAUDE_CODE_MAX_TURNS', desc: '非交互模式最大轮数', default: 'Infinity' },
+    { name: 'CLAUDE_CODE_MAX_OUTPUT_TOKENS', desc: '单回复最大 Token 数', default: '模型默认' },
+    { name: 'CLAUDE_CODE_EFFORT_LEVEL', desc: '推理力度（low/medium/high/xhigh/max/auto）', default: '—' },
+    { name: 'CLAUDE_CODE_DISABLE_THINKING', desc: '禁用扩展思考', default: '0' },
+    { name: 'CLAUDE_CODE_DISABLE_AUTO_MEMORY', desc: '禁用自动记忆', default: '0' },
+    { name: 'CLAUDE_CODE_DISABLE_GIT_INSTRUCTIONS', desc: '禁用内置 Git 系统提示', default: '0' },
+    { name: 'CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC', desc: '禁用更新/反馈/遥测等非必要流量', default: '0' },
+    { name: 'CLAUDE_CODE_FORK_SUBAGENT', desc: '启用 fork 子代理继承对话上下文', default: '0' },
+  ],
+  '网络与遥测': [
+    { name: 'HTTP_PROXY', desc: 'HTTP 代理地址', default: '—' },
+    { name: 'HTTPS_PROXY', desc: 'HTTPS 代理地址', default: '—' },
+    { name: 'CLAUDE_CODE_ENABLE_TELEMETRY', desc: '启用 OpenTelemetry 遥测', default: '0' },
+    { name: 'DISABLE_AUTOUPDATER', desc: '禁用自动更新', default: '0' },
+    { name: 'BASH_DEFAULT_TIMEOUT_MS', desc: 'Bash 默认超时（毫秒）', default: '120000' },
+    { name: 'BASH_MAX_TIMEOUT_MS', desc: 'Bash 最大超时上限（毫秒）', default: '600000' },
+  ],
+}
+
+const SLASH_COMMANDS = {
+  '会话控制': [
+    { name: '/compact', desc: '压缩上下文（可带聚焦指示）' },
+    { name: '/clear', desc: '新对话（保留历史可 /resume）', alias: '/reset, /new' },
+    { name: '/resume', desc: '恢复之前的对话（支持后台会话）', alias: '/continue' },
+    { name: '/branch', desc: '分叉当前对话为新分支', alias: '/fork' },
+    { name: '/goal', desc: '设定持续目标直到达成' },
+    { name: '/context', desc: '可视化上下文窗口使用情况' },
+    { name: '/rewind', desc: '回退对话和/或代码到检查点', alias: '/checkpoint, /undo' },
+    { name: '/btw', desc: '快速旁问（不计入对话历史）' },
+    { name: '/recap', desc: '生成当前会话的一行摘要' },
+    { name: '/rename', desc: '重命名当前会话' },
+    { name: '/exit', desc: '退出 CLI（后台会话中为分离）', alias: '/quit' },
+    { name: '/stop', desc: '停止当前后台会话' },
+  ],
+  '模型与模式': [
+    { name: '/model', desc: '切换 AI 模型' },
+    { name: '/effort', desc: '调整推理力度（low~max）' },
+    { name: '/fast', desc: '切换 Opus 快速输出模式' },
+    { name: '/plan', desc: '进入规划模式' },
+    { name: '/focus', desc: '切换精简视图（全屏模式）' },
+    { name: '/diff', desc: '交互式查看未提交变更' },
+    { name: '/sandbox', desc: '切换沙盒模式' },
+    { name: '/tui', desc: '设置终端 UI 渲染器（default/fullscreen）' },
+  ],
+  '配置与记忆': [
+    { name: '/memory', desc: '编辑 CLAUDE.md 和自动记忆' },
+    { name: '/config', desc: '打开配置面板', alias: '/settings' },
+    { name: '/permissions', desc: '管理权限规则', alias: '/allowed-tools' },
+    { name: '/hooks', desc: '查看 Hook 配置' },
+    { name: '/mcp', desc: '管理 MCP 服务器与 OAuth' },
+    { name: '/init', desc: '初始化项目 CLAUDE.md' },
+    { name: '/skills', desc: '列出可用技能' },
+    { name: '/reload-skills', desc: '重新扫描技能目录（无需重启）' },
+    { name: '/reload-plugins', desc: '重新加载所有活跃插件' },
+    { name: '/plugin', desc: '管理 Claude Code 插件' },
+    { name: '/theme', desc: '切换颜色主题（含深色/浅色/无障碍）' },
+    { name: '/color', desc: '设置提示栏颜色' },
+    { name: '/keybindings', desc: '打开/创建键绑定配置' },
+    { name: '/terminal-setup', desc: '配置终端快捷键（Shift+Enter 等）' },
+    { name: '/statusline', desc: '配置 Claude Code 状态栏' },
+    { name: '/scroll-speed', desc: '调整鼠标滚轮速度（全屏模式）' },
+    { name: '/privacy-settings', desc: '查看和更新隐私设置' },
+  ],
+  '工具与诊断': [
+    { name: '/doctor', desc: '诊断安装与环境问题' },
+    { name: '/help', desc: '显示帮助和命令列表' },
+    { name: '/add-dir', desc: '添加额外工作目录' },
+    { name: '/export', desc: '导出对话为文本' },
+    { name: '/copy', desc: '复制最近回复到剪贴板' },
+    { name: '/usage', desc: '查看会话费用与用量统计', alias: '/cost, /stats' },
+    { name: '/agents', desc: '管理子代理配置' },
+    { name: '/tasks', desc: '列出后台任务', alias: '/bashes' },
+    { name: '/background', desc: '将当前会话分离为后台代理', alias: '/bg' },
+    { name: '/heapdump', desc: '导出堆快照诊断内存问题' },
+    { name: '/insights', desc: '分析会话生成使用报告' },
+    { name: '/feedback', desc: '提交反馈或报告 Bug', alias: '/bug, /share' },
+    { name: '/status', desc: '查看版本、模型、连接等状态' },
+    { name: '/release-notes', desc: '查看更新日志' },
+  ],
+  '账号与平台': [
+    { name: '/login', desc: '登录 Anthropic 账号' },
+    { name: '/logout', desc: '退出 Anthropic 账号' },
+    { name: '/upgrade', desc: '升级到更高计划' },
+    { name: '/usage-credits', desc: '配置额外用量额度' },
+    { name: '/passes', desc: '分享 Claude Code 免费体验周' },
+    { name: '/desktop', desc: '在桌面应用中继续会话', alias: '/app' },
+    { name: '/chrome', desc: '配置 Chrome 集成' },
+    { name: '/ide', desc: '管理 IDE 集成状态' },
+    { name: '/mobile', desc: '显示移动端下载二维码', alias: '/ios, /android' },
+    { name: '/stickers', desc: '订购 Claude Code 贴纸' },
+    { name: '/radio', desc: '打开 Claude FM lo-fi 电台' },
+    { name: '/powerup', desc: '通过互动课程发现新功能' },
+    { name: '/voice', desc: '切换语音输入模式（hold/tap/off）' },
+  ],
+  '远程与协作': [
+    { name: '/remote-control', desc: '通过 claude.ai 远程控制本地会话', alias: '/rc' },
+    { name: '/teleport', desc: '将网页会话拉入终端', alias: '/tp' },
+    { name: '/web-setup', desc: '连接 GitHub 到 Claude Code 网页版' },
+    { name: '/remote-env', desc: '配置远程环境' },
+    { name: '/autofix-pr', desc: '自动修复 PR 的 CI 失败和评审意见' },
+    { name: '/install-github-app', desc: '安装 Claude GitHub Actions 应用' },
+    { name: '/install-slack-app', desc: '安装 Claude Slack 应用' },
+    { name: '/team-onboarding', desc: '生成团队 onboarding 指南' },
+    { name: '/schedule', desc: '创建/管理云端定时 Routines', alias: '/routines' },
+    { name: '/setup-bedrock', desc: '配置 AWS Bedrock 后端' },
+    { name: '/setup-vertex', desc: '配置 Google Vertex AI 后端' },
+  ],
+  '技能（Bundled Skills）': [
+    { name: '/code-review', desc: '代码审查 diff（--fix/--comment/ultra 云端深度审查）', skill: true },
+    { name: '/simplify', desc: '等价 /code-review --fix，自动优化代码', skill: true },
+    { name: '/batch', desc: '大规模并行代码变更（worktree 隔离）', skill: true },
+    { name: '/run', desc: '启动并驱动应用以验证变更', skill: true },
+    { name: '/run-skill-generator', desc: '为 /run 和 /verify 生成项目技能', skill: true },
+    { name: '/verify', desc: '构建并运行应用确认代码行为正确', skill: true },
+    { name: '/debug', desc: '调试日志与问题排查', skill: true },
+    { name: '/loop', desc: '循环执行任务（可自定间隔或自动节奏）', skill: true, alias: '/proactive' },
+    { name: '/claude-api', desc: '加载 Claude API 参考（migrate/managed-agents-onboard）', skill: true },
+    { name: '/fewer-permission-prompts', desc: '扫描历史自动添加权限白名单', skill: true },
+    { name: '/review', desc: '本地审查 Pull Request', skill: true },
+    { name: '/security-review', desc: '分析当前分支的安全漏洞', skill: true },
+    { name: '/ultraplan', desc: '云端深度规划', skill: true },
+    { name: '/ultrareview', desc: '云端多代理深度代码审查', skill: true },
+  ],
+}
 
 const CONFIG_ITEMS = [
   { key: 'claudeMd', icon: '📏', label: 'CLAUDE.md', link: '/rules', getValue: d => d.claudeMd.length, getDetail: d => d.claudeMd.map(m => m.label).join(' · ') || null },
@@ -169,6 +308,7 @@ export default function Overview() {
   const [tokens, setTokens] = useState(null)
   const [loading, setLoading] = useState(true)
   const [expandedCats, setExpandedCats] = useState({})
+  const [versionInfo, setVersionInfo] = useState(null)
 
   const load = () => {
     setLoading(true)
@@ -176,14 +316,15 @@ export default function Overview() {
       fetch('/api/overview/harness').then(r => r.json()),
       fetch('/api/diagnostics').then(r => r.json()).catch(() => null),
       fetch('/api/overview/activity').then(r => r.json()).catch(() => []),
-      fetch('/api/overview/tokens').then(r => r.json()).catch(() => null),
-    ]).then(([h, d, a, t]) => {
+    ]).then(([h, d, a]) => {
       setHarness(h)
       setDiagnostics(d)
       setActivity(a)
-      setTokens(t)
       setLoading(false)
     }).catch(() => setLoading(false))
+
+    fetch('/api/overview/tokens').then(r => r.json()).then(setTokens).catch(() => {})
+    fetch('/api/overview/version').then(r => r.json()).then(setVersionInfo).catch(() => {})
   }
 
   useEffect(() => { load() }, [])
@@ -209,6 +350,47 @@ export default function Overview() {
           </button>
         </div>
         <p className="text-gray-500 text-sm mb-8">Claude Code Harness 配置、用量与工具一览</p>
+
+        {/* Version Card */}
+        {versionInfo && (
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 mb-6">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-gray-50 rounded-xl flex items-center justify-center text-xl">🚀</div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[15px] font-semibold text-gray-900">
+                      Claude Code {versionInfo.current ? `v${versionInfo.current}` : '未安装'}
+                    </span>
+                    {versionInfo.hasUpdate ? (
+                      <span className="text-[11px] px-2 py-0.5 rounded-full bg-blue-50 text-blue-600 font-medium">
+                        有更新 → v{versionInfo.latest}
+                      </span>
+                    ) : versionInfo.current ? (
+                      <span className="text-[11px] px-2 py-0.5 rounded-full bg-green-50 text-green-600 font-medium">已是最新</span>
+                    ) : null}
+                  </div>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <a href={`https://github.com/anthropics/claude-code/releases${versionInfo.latest ? `/tag/v${versionInfo.latest}` : ''}`} target="_blank" rel="noopener noreferrer"
+                  className="text-[13px] px-3 py-1.5 rounded-lg bg-gray-100 text-gray-600 hover:bg-gray-200 font-medium transition-colors">
+                  GitHub 更新日志 →
+                </a>
+              </div>
+            </div>
+            {versionInfo.hasUpdate && (
+              <div className="mt-3 flex items-center gap-2 text-[13px] text-gray-500">
+                <span>更新命令：</span>
+                <code className="bg-gray-100 px-2 py-1 rounded text-[12px] font-mono select-all text-gray-700">npm install -g @anthropic-ai/claude-code@latest</code>
+                <button
+                  className="text-[11px] text-blue-500 hover:text-blue-600 underline"
+                  onClick={() => navigator.clipboard.writeText('npm install -g @anthropic-ai/claude-code@latest')}
+                >复制</button>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Section 1: 配置状态 */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 mb-6">
@@ -486,7 +668,86 @@ export default function Overview() {
           )}
         </div>
 
-        {/* Section 7: 最近活动 */}
+        {/* Section 7: 环境变量速查 */}
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 mb-6">
+          <div className="flex items-center justify-between mb-1">
+            <h3 className="text-[15px] font-semibold text-gray-900">环境变量</h3>
+            <span className="text-[12px] text-gray-400">{Object.values(ENV_VARS).reduce((s, a) => s + a.length, 0)} 个</span>
+          </div>
+          <p className="text-[12px] text-gray-400 mb-4">
+            控制 Claude Code 运行行为的关键环境变量 — <a href="https://code.claude.com/docs/en/env-vars" target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">官方文档</a>
+          </p>
+          <div className="space-y-0">
+            {Object.entries(ENV_VARS).map(([cat, vars]) => (
+              <div key={cat}>
+                <button onClick={() => toggleCat(`env_${cat}`)} className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-gray-50 transition-colors text-left">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[13px] font-medium text-gray-800">{cat}</span>
+                    <span className="text-[11px] text-gray-400">({vars.length})</span>
+                  </div>
+                  <svg className={`w-4 h-4 text-gray-400 transition-transform ${expandedCats[`env_${cat}`] ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </button>
+                {expandedCats[`env_${cat}`] && (
+                  <div className="px-3 pb-3">
+                    <div className="bg-gray-50 rounded-lg p-3 space-y-1.5">
+                      {vars.map(v => (
+                        <div key={v.name} className="flex items-center gap-2 text-[12px]">
+                          <code className="font-mono font-medium text-gray-700 bg-white px-1.5 py-0.5 rounded border border-gray-100 shrink-0">{v.name}</code>
+                          <span className="text-gray-500 flex-1 truncate">{v.desc}</span>
+                          <span className="text-[10px] bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded shrink-0 font-mono">{v.default}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Section 8: 斜杠命令速查 */}
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 mb-6">
+          <div className="flex items-center justify-between mb-1">
+            <h3 className="text-[15px] font-semibold text-gray-900">斜杠命令</h3>
+            <span className="text-[12px] text-gray-400">{Object.values(SLASH_COMMANDS).reduce((s, a) => s + a.length, 0)} 个</span>
+          </div>
+          <p className="text-[12px] text-gray-400 mb-4">
+            在 Claude Code 中输入 / 触发的快捷命令 — <a href="https://code.claude.com/docs/en/commands" target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">官方文档</a>
+          </p>
+          <div className="space-y-0">
+            {Object.entries(SLASH_COMMANDS).map(([cat, cmds]) => (
+              <div key={cat}>
+                <button onClick={() => toggleCat(`cmd_${cat}`)} className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-gray-50 transition-colors text-left">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[13px] font-medium text-gray-800">{cat}</span>
+                    <span className="text-[11px] text-gray-400">({cmds.length})</span>
+                  </div>
+                  <svg className={`w-4 h-4 text-gray-400 transition-transform ${expandedCats[`cmd_${cat}`] ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </button>
+                {expandedCats[`cmd_${cat}`] && (
+                  <div className="px-3 pb-3">
+                    <div className="bg-gray-50 rounded-lg p-3 space-y-1.5">
+                      {cmds.map(cmd => (
+                        <div key={cmd.name} className="flex items-center gap-2 text-[12px]">
+                          <code className="font-mono font-medium text-blue-600 bg-white px-1.5 py-0.5 rounded border border-gray-100 shrink-0">{cmd.name}</code>
+                          <span className="text-gray-500 flex-1 truncate">{cmd.desc}</span>
+                          {cmd.skill && <span className="text-[10px] bg-indigo-50 text-indigo-600 px-1.5 py-0.5 rounded shrink-0">技能</span>}
+                          {cmd.alias && <span className="text-[10px] bg-gray-100 text-gray-400 px-1.5 py-0.5 rounded shrink-0">{cmd.alias}</span>}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Section 9: 最近活动 */}
         {activity.length > 0 && (
           <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 mb-6">
             <h3 className="text-[15px] font-semibold mb-4 text-gray-900">最近活动</h3>
@@ -508,7 +769,7 @@ export default function Overview() {
           </div>
         )}
 
-        {/* Section 8: 快速导航 */}
+        {/* Section 10: 快速导航 */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
           <h3 className="text-[15px] font-semibold text-gray-900 mb-4">快速导航</h3>
           <div className="grid grid-cols-2 md:grid-cols-5 gap-3">

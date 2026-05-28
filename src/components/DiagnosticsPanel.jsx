@@ -35,7 +35,7 @@ export default function DiagnosticsPanel() {
   const score = summary.total > 0 ? Math.round((summary.pass / summary.total) * 100) : 100
 
   return (
-    <div className="h-full overflow-y-auto p-8">
+    <div className="h-full overflow-y-auto p-8 bg-[#f5f5f7]">
       <div className="max-w-3xl mx-auto">
         <div className="flex items-center justify-between mb-8">
           <div>

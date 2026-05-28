@@ -2,6 +2,7 @@ import { Router } from 'express'
 import fs from 'fs'
 import path from 'path'
 import { CLAUDE_DIR, parseFrontmatter } from '../utils/parser.js'
+import { ensureWithin } from '../utils/security.js'
 
 const router = Router()
 const USER_AGENTS_DIR = path.join(CLAUDE_DIR, 'agents')
@@ -57,7 +58,7 @@ router.get('/:scope/:filename', (req, res) => {
   try {
     const { scope, filename } = req.params
     const dir = scope === 'project' ? getProjectAgentsDir() : USER_AGENTS_DIR
-    const filePath = path.join(dir, filename.endsWith('.md') ? filename : filename + '.md')
+    const filePath = ensureWithin(dir, filename.endsWith('.md') ? filename : filename + '.md')
 
     if (!fs.existsSync(filePath)) return res.status(404).json({ error: '代理不存在' })
 
@@ -88,8 +89,8 @@ router.post('/', (req, res) => {
     const dir = scope === 'project' ? getProjectAgentsDir() : USER_AGENTS_DIR
     if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true })
 
-    const safeName = (filename.endsWith('.md') ? filename : filename + '.md').replace(/[^a-zA-Z0-9_\-\.\/]/g, '-')
-    const filePath = path.join(dir, safeName)
+    const safeName = path.basename((filename.endsWith('.md') ? filename : filename + '.md').replace(/[^a-zA-Z0-9_\-\.]/g, '-'))
+    const filePath = ensureWithin(dir, safeName)
 
     const fileDir = path.dirname(filePath)
     if (!fs.existsSync(fileDir)) fs.mkdirSync(fileDir, { recursive: true })
@@ -108,7 +109,7 @@ router.put('/:scope/:filename', (req, res) => {
     if (!content) return res.status(400).json({ error: '缺少 content' })
 
     const dir = scope === 'project' ? getProjectAgentsDir() : USER_AGENTS_DIR
-    const filePath = path.join(dir, filename.endsWith('.md') ? filename : filename + '.md')
+    const filePath = ensureWithin(dir, filename.endsWith('.md') ? filename : filename + '.md')
 
     if (!fs.existsSync(filePath)) return res.status(404).json({ error: '代理不存在' })
 
@@ -123,7 +124,7 @@ router.delete('/:scope/:filename', (req, res) => {
   try {
     const { scope, filename } = req.params
     const dir = scope === 'project' ? getProjectAgentsDir() : USER_AGENTS_DIR
-    const filePath = path.join(dir, filename.endsWith('.md') ? filename : filename + '.md')
+    const filePath = ensureWithin(dir, filename.endsWith('.md') ? filename : filename + '.md')
 
     if (!fs.existsSync(filePath)) return res.status(404).json({ error: '代理不存在' })
 

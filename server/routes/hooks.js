@@ -3,6 +3,7 @@ import fs from 'fs'
 import path from 'path'
 import { CLAUDE_DIR } from '../utils/parser.js'
 import { readSettings, updateSettings } from '../utils/settings.js'
+import { ensureWithin } from '../utils/security.js'
 
 const router = Router()
 const HOOKS_DIR = path.join(CLAUDE_DIR, 'hooks')
@@ -99,8 +100,13 @@ router.post('/scripts', (req, res) => {
     const { name, content } = req.body
     if (!name || !content) return res.status(400).json({ error: '需要 name 和 content' })
 
+    const safeName = path.basename(name.endsWith('.sh') ? name : name + '.sh')
+    if (!safeName.endsWith('.sh') || safeName.startsWith('.')) {
+      return res.status(400).json({ error: '非法文件名' })
+    }
+
     if (!fs.existsSync(HOOKS_DIR)) fs.mkdirSync(HOOKS_DIR, { recursive: true })
-    const filePath = path.join(HOOKS_DIR, name.endsWith('.sh') ? name : name + '.sh')
+    const filePath = ensureWithin(HOOKS_DIR, safeName)
     fs.writeFileSync(filePath, content, 'utf-8')
     fs.chmodSync(filePath, '755')
 
@@ -112,7 +118,7 @@ router.post('/scripts', (req, res) => {
 
 router.delete('/scripts/:name', (req, res) => {
   try {
-    const filePath = path.join(HOOKS_DIR, req.params.name)
+    const filePath = ensureWithin(HOOKS_DIR, req.params.name)
     if (!fs.existsSync(filePath)) return res.status(404).json({ error: '脚本不存在' })
 
     fs.unlinkSync(filePath)

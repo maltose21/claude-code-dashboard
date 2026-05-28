@@ -3,6 +3,7 @@ import fs from 'fs'
 import path from 'path'
 import { CLAUDE_DIR } from '../utils/parser.js'
 import { readSettings, updateSettings } from '../utils/settings.js'
+import { ensureWithin } from '../utils/security.js'
 
 const router = Router()
 
@@ -63,14 +64,23 @@ router.put('/claude-md', (req, res) => {
     const { path: filePath, content } = req.body
     if (!filePath || content === undefined) return res.status(400).json({ error: '需要 path 和 content' })
 
-    if (!filePath.includes('CLAUDE') && !filePath.includes('rules/')) {
+    const basename = path.basename(filePath)
+    const isClaudeMd = basename === 'CLAUDE.md' || basename === 'CLAUDE.local.md'
+    const isRule = filePath.includes(path.sep + 'rules' + path.sep) && basename.endsWith('.md')
+    if (!isClaudeMd && !isRule) {
       return res.status(403).json({ error: '只能编辑 CLAUDE.md 或规则文件' })
     }
 
-    const dir = path.dirname(filePath)
+    const allowedBases = [CLAUDE_DIR, process.cwd()]
+    const resolved = path.resolve(filePath)
+    if (!allowedBases.some(base => resolved.startsWith(path.resolve(base) + path.sep) || resolved === path.resolve(base))) {
+      return res.status(403).json({ error: '路径越界' })
+    }
+
+    const dir = path.dirname(resolved)
     if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true })
 
-    fs.writeFileSync(filePath, content, 'utf-8')
+    fs.writeFileSync(resolved, content, 'utf-8')
     res.json({ success: true })
   } catch (err) {
     res.status(500).json({ error: err.message })
@@ -97,13 +107,15 @@ router.put('/settings', (req, res) => {
     const { fields } = req.body
     if (!fields || typeof fields !== 'object') return res.status(400).json({ error: '需要 fields 对象' })
 
-    const forbidden = ['env']
+    const allowed = ['preferences', 'projects']
     const keys = Object.keys(fields)
-    const blocked = keys.filter(k => forbidden.includes(k))
-    if (blocked.length) return res.status(403).json({ error: `不允许修改: ${blocked.join(', ')}` })
+    const rejected = keys.filter(k => !allowed.includes(k))
+    if (rejected.length) return res.status(403).json({ error: `不允许修改: ${rejected.join(', ')}。可修改: ${allowed.join(', ')}` })
 
     const data = updateSettings(settings => {
-      Object.assign(settings, fields)
+      for (const k of keys) {
+        settings[k] = fields[k]
+      }
     })
 
     res.json({ success: true, settings: data })

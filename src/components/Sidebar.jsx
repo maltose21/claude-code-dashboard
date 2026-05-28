@@ -5,7 +5,7 @@ const navItems = [
   { path: '/skills', label: '技能', sublabel: 'Skills', icon: '⚡' },
   { path: '/agents', label: '子代理', sublabel: 'Agents', icon: '🤖' },
   { path: '/hooks', label: '钩子', sublabel: 'Hooks', icon: '🔗' },
-  { path: '/hooklog', label: '日志', sublabel: 'Hook Log', icon: '📋' },
+  { path: '/hooklog', label: '日志', sublabel: 'Hook Log', icon: '📜' },
   { path: '/plugins', label: '插件', sublabel: 'Plugins', icon: '🧩' },
   { path: '/memories', label: '记忆', sublabel: 'Memories', icon: '🧠' },
   { path: '/mcp', label: 'MCP', sublabel: 'MCP Servers', icon: '🔌' },

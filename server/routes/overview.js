@@ -1,8 +1,13 @@
 import { Router } from 'express'
 import fs from 'fs'
 import path from 'path'
+import readline from 'readline'
+import { execFile } from 'child_process'
+import { promisify } from 'util'
 import { CLAUDE_DIR, getProjectDirs, parseFrontmatter } from '../utils/parser.js'
 import { readSettings } from '../utils/settings.js'
+
+const execFileAsync = promisify(execFile)
 
 const router = Router()
 const CLAUDE_JSON = path.join(process.env.HOME, '.claude.json')
@@ -333,58 +338,65 @@ router.get('/harness', (req, res) => {
   }
 })
 
-router.get('/tokens', (req, res) => {
+router.get('/tokens', async (req, res) => {
   try {
     const projectDirs = getProjectDirs()
     const byModel = {}
     const daily = {}
     const sevenDaysAgo = Date.now() - 7 * 24 * 3600000
 
+    const filePromises = []
     for (const dir of projectDirs) {
       const files = fs.readdirSync(dir.fullPath).filter(f => f.endsWith('.jsonl'))
       for (const file of files) {
         const filePath = path.join(dir.fullPath, file)
-        const content = fs.readFileSync(filePath, 'utf-8')
-        const seenConv = {}
+        filePromises.push(new Promise((resolve) => {
+          const seenConv = {}
+          const rl = readline.createInterface({ input: fs.createReadStream(filePath), crlfDelay: Infinity })
+          rl.on('line', (line) => {
+            if (!line.includes('"assistant"') || !line.includes('"usage"')) return
+            let d
+            try { d = JSON.parse(line) } catch { return }
+            if (d.type !== 'assistant' || !d.message?.usage) return
 
-        for (const line of content.split('\n')) {
-          if (!line.includes('"assistant"') || !line.includes('"usage"')) continue
-          let d
-          try { d = JSON.parse(line) } catch { continue }
-          if (d.type !== 'assistant' || !d.message?.usage) continue
+            const model = d.message.model || 'unknown'
+            if (model === '<synthetic>') return
+            const u = d.message.usage
 
-          const model = d.message.model || 'unknown'
-          if (model === '<synthetic>') continue
-          const u = d.message.usage
+            if (!byModel[model]) byModel[model] = { input: 0, output: 0, cacheCreation: 0, cacheRead: 0, messageCount: 0, conversationCount: 0 }
+            const m = byModel[model]
+            m.input += u.input_tokens || 0
+            m.output += u.output_tokens || 0
+            m.cacheCreation += u.cache_creation_input_tokens || 0
+            m.cacheRead += u.cache_read_input_tokens || 0
+            m.messageCount++
+            if (!seenConv[model]) seenConv[model] = new Set()
+            seenConv[model].add(file)
 
-          if (!byModel[model]) byModel[model] = { input: 0, output: 0, cacheCreation: 0, cacheRead: 0, messageCount: 0, conversationCount: 0 }
-          const m = byModel[model]
-          m.input += u.input_tokens || 0
-          m.output += u.output_tokens || 0
-          m.cacheCreation += u.cache_creation_input_tokens || 0
-          m.cacheRead += u.cache_read_input_tokens || 0
-          m.messageCount++
-          if (!seenConv[model]) seenConv[model] = new Set()
-          seenConv[model].add(file)
-
-          if (d.timestamp) {
-            const ts = new Date(d.timestamp).getTime()
-            if (ts >= sevenDaysAgo) {
-              const date = new Date(d.timestamp).toISOString().slice(0, 10)
-              if (!daily[date]) daily[date] = { input: 0, output: 0, cacheCreation: 0, cacheRead: 0 }
-              daily[date].input += u.input_tokens || 0
-              daily[date].output += u.output_tokens || 0
-              daily[date].cacheCreation += u.cache_creation_input_tokens || 0
-              daily[date].cacheRead += u.cache_read_input_tokens || 0
+            if (d.timestamp) {
+              const ts = new Date(d.timestamp).getTime()
+              if (ts >= sevenDaysAgo) {
+                const date = new Date(d.timestamp).toISOString().slice(0, 10)
+                if (!daily[date]) daily[date] = { input: 0, output: 0, cacheCreation: 0, cacheRead: 0 }
+                daily[date].input += u.input_tokens || 0
+                daily[date].output += u.output_tokens || 0
+                daily[date].cacheCreation += u.cache_creation_input_tokens || 0
+                daily[date].cacheRead += u.cache_read_input_tokens || 0
+              }
             }
-          }
-        }
-
-        for (const [model, convSet] of Object.entries(seenConv)) {
-          byModel[model].conversationCount += convSet.size
-        }
+          })
+          rl.on('close', () => {
+            for (const [model, convSet] of Object.entries(seenConv)) {
+              byModel[model].conversationCount += convSet.size
+            }
+            resolve()
+          })
+          rl.on('error', () => resolve())
+        }))
       }
     }
+
+    await Promise.all(filePromises)
 
     const total = { input: 0, output: 0, cacheCreation: 0, cacheRead: 0, messageCount: 0, conversationCount: 0 }
     for (const m of Object.values(byModel)) {
@@ -401,6 +413,30 @@ router.get('/tokens', (req, res) => {
       .map(([date, v]) => ({ date, ...v }))
 
     res.json({ byModel, total, recent })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+router.get('/version', async (req, res) => {
+  try {
+    let current = null
+    try {
+      const { stdout } = await execFileAsync('claude', ['--version'], { timeout: 5000 })
+      const match = stdout.trim().match(/(\d+\.\d+\.\d+)/)
+      current = match ? match[1] : stdout.trim()
+    } catch {}
+
+    let latest = null
+    try {
+      const { stdout } = await execFileAsync('curl', ['-s', '--max-time', '3', 'https://registry.npmjs.org/@anthropic-ai/claude-code/latest'], { timeout: 5000 })
+      const npmData = JSON.parse(stdout)
+      latest = npmData.version || null
+    } catch {}
+
+    const hasUpdate = !!(current && latest && current !== latest)
+
+    res.json({ current, latest, hasUpdate })
   } catch (err) {
     res.status(500).json({ error: err.message })
   }

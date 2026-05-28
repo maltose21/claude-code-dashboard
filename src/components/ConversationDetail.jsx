@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useParams, Link } from 'react-router-dom'
+import ReactMarkdown from 'react-markdown'
 import Modal from './ui/Modal'
 import { useToast } from './ui/Toast'
 
@@ -171,8 +172,13 @@ export default function ConversationDetail() {
                   </span>
                 )}
               </div>
-              <div className="text-[13px] text-gray-700 whitespace-pre-wrap break-words leading-7">
-                {msg.content || '(空)'}
+              <div className={`text-[13px] text-gray-700 leading-7 ${msg.type === 'user' ? 'whitespace-pre-wrap break-words' : ''}`}>
+                {msg.type === 'user'
+                  ? (msg.content || '(空)')
+                  : msg.content
+                    ? <ReactMarkdown className="prose prose-sm max-w-none prose-pre:bg-gray-100 prose-pre:rounded-lg prose-pre:p-3 prose-code:text-[12px] prose-code:font-mono prose-headings:text-gray-800 prose-headings:mt-4 prose-headings:mb-2 prose-p:my-1.5 prose-li:my-0.5 prose-ul:my-1 prose-ol:my-1">{msg.content}</ReactMarkdown>
+                    : '(空)'
+                }
               </div>
               {msg.toolUse?.length > 0 && (
                 <div className="mt-3 flex flex-wrap gap-1.5">

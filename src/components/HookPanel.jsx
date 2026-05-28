@@ -5,7 +5,7 @@ import { useToast } from './ui/Toast'
 
 const EVENT_META = {
   Setup:              { desc: '初始化/维护时触发', detail: '使用 --init-only 或 -p 模式的 --init/--maintenance 时触发。可用于初始化环境、安装依赖。', icon: '🔧', group: '会话生命周期', matcher: 'init | maintenance' },
-  SessionStart:       { desc: '会话开始或恢复时触发', detail: '当用户启动新会话、恢复会话、清除上下文或压缩上下文时触发。可用于初始化环境、加载项目配置。', icon: '▶️', group: '会话生命周期', matcher: 'startup | resume | clear | compact' },
+  SessionStart:       { desc: '会话开始或恢复时触发', detail: '当用户启动新会话、恢复会话、清除上下文或压缩上下文时触发。可用于初始化环境、加载项目配置。支持 reloadSkills: true 动态加载技能、sessionTitle 设置会话标题、initialUserMessage 注入首条消息、watchPaths 监视文件变更。', icon: '▶️', group: '会话生命周期', matcher: 'startup | resume | clear | compact' },
   SessionEnd:         { desc: '会话结束时触发', detail: '当 Claude Code 会话正常退出时触发。支持匹配退出原因。可用于清理临时文件、保存会话摘要。', icon: '⏹️', group: '会话生命周期', matcher: 'clear | resume | logout | ...' },
   UserPromptSubmit:   { desc: '用户提交提示词时触发', detail: '在用户输入内容并按回车发送给 Claude 之前触发。可用于对输入做预处理、添加上下文或拦截特定指令。支持 exit 2 阻止发送。', icon: '💬', group: '用户输入', canBlock: true },
   UserPromptExpansion:{ desc: '斜杠命令展开时触发', detail: '当用户使用 / 命令（Skill）时，在命令展开前触发。可用于修改或拦截 Skill 调用。支持 exit 2 阻止。', icon: '⚡', group: '用户输入', canBlock: true },
@@ -17,6 +17,7 @@ const EVENT_META = {
   PermissionDenied:   { desc: '权限被拒绝时触发', detail: '当工具调用被 auto mode 自动拒绝时触发（注意：非用户手动拒绝）。可用于记录日志或触发替代方案。', icon: '🚫', group: '权限', matcher: '工具名称' },
   Stop:               { desc: 'Claude 停止生成时触发', detail: '当 Claude 完成一轮回复、停止生成时触发。常用于在每次对话结束后执行检查清单、自动保存进度或发送通知。支持 exit 2 阻止。', icon: '🛑', group: '回复生命周期', canBlock: true },
   StopFailure:        { desc: '回复因 API 错误终止时触发', detail: '当 Claude 的回复因 API 错误（速率限制、网络等）而终止时触发。可用于错误监控和告警。', icon: '💥', group: '回复生命周期', matcher: '错误类型' },
+  MessageDisplay:     { desc: '消息显示到终端时触发（仅展示层）', detail: '当 Claude 的文本消息显示到终端时触发。通过 displayContent 替换显示内容，但不影响 transcript 和模型上下文。不可阻止（cannot block）。可用于消息转发或格式化处理。', icon: '📺', group: '回复生命周期' },
   SubagentStart:      { desc: '子代理启动时触发', detail: '当 Claude 创建子代理（Agent tool）去并行处理任务时触发。可用于跟踪子代理活动或限制并发数。', icon: '🤖', group: '子代理', matcher: '代理类型' },
   SubagentStop:       { desc: '子代理完成时触发', detail: '当子代理完成任务并返回结果时触发。可用于汇总子代理的工作结果或发送完成通知。支持 exit 2 阻止。', icon: '🏁', group: '子代理', matcher: '代理类型', canBlock: true },
   TaskCreated:        { desc: '任务创建时触发', detail: '当通过 TaskCreate 创建后台任务时触发。支持 exit 2 阻止。', icon: '📝', group: '任务', canBlock: true },

@@ -3,7 +3,15 @@
   "version": "1.0.0",
   "type": "module",
   "description": "A local web dashboard for managing Claude Code resources — skills, hooks, plugins, MCP servers, memories, permissions, and more.",
-  "keywords": ["claude-code", "dashboard", "mcp", "harness", "skills", "hooks", "plugins"],
+  "keywords": [
+    "claude-code",
+    "dashboard",
+    "mcp",
+    "harness",
+    "skills",
+    "hooks",
+    "plugins"
+  ],
   "author": "",
   "license": "MIT",
   "scripts": {
@@ -14,18 +22,20 @@
     "start": "npm run build && node server/index.js"
   },
   "dependencies": {
+    "@tailwindcss/typography": "^0.5.19",
     "cors": "^2.8.5",
     "express": "^4.21.0",
-    "gray-matter": "^4.0.3"
+    "gray-matter": "^4.0.3",
+    "react-markdown": "^10.1.0"
   },
   "devDependencies": {
+    "@tailwindcss/vite": "^4.0.0",
     "@vitejs/plugin-react": "^4.3.4",
     "concurrently": "^9.1.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-router-dom": "^7.1.0",
     "tailwindcss": "^4.0.0",
-    "@tailwindcss/vite": "^4.0.0",
     "vite": "^6.0.0"
   }
 }

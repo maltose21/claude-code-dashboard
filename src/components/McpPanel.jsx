@@ -246,11 +246,11 @@ export default function McpPanel() {
           <div>
             <label className="block text-[13px] text-gray-600 mb-1.5 font-medium">传输类型</label>
             <div className="flex gap-1 bg-gray-100 p-1 rounded-lg">
-              {['stdio', 'http', 'sse'].map(t => (
+              {['stdio', 'http', 'streamable-http', 'sse'].map(t => (
                 <button
                   key={t}
                   onClick={() => setServerType(t)}
-                  className={`flex-1 px-3 py-2 text-[13px] rounded-md transition-all font-medium ${serverType === t ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                  className={`flex-1 px-3 py-2 text-[12px] rounded-md transition-all font-medium ${serverType === t ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
                 >
                   {t.toUpperCase()}
                 </button>
