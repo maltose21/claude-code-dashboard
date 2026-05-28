@@ -131,7 +131,7 @@ const ENV_VARS = {
   '模型与后端': [
     { name: 'ANTHROPIC_API_KEY', desc: 'API 密钥（直连模式）', default: '—' },
     { name: 'ANTHROPIC_AUTH_TOKEN', desc: '自定义 Authorization 头（第三方网关）', default: '—' },
-    { name: 'ANTHROPIC_MODEL', desc: '覆盖默认模型（单次会话）', default: '—' },
+    { name: 'ANTHROPIC_MODEL', desc: '覆盖默认模型（可被 --model 和 /model 覆盖）', default: '—' },
     { name: 'ANTHROPIC_BASE_URL', desc: '自定义 API 端点（代理/网关）', default: 'api.anthropic.com' },
     { name: 'CLAUDE_CODE_USE_BEDROCK', desc: '使用 AWS Bedrock 后端', default: '0' },
     { name: 'CLAUDE_CODE_USE_VERTEX', desc: '使用 Google Vertex AI 后端', default: '0' },
@@ -140,7 +140,7 @@ const ENV_VARS = {
     { name: 'CLAUDE_CODE_API_KEY_HELPER_TTL_MS', desc: '密钥刷新间隔（毫秒）', default: '—' },
   ],
   '行为控制': [
-    { name: 'CLAUDE_CODE_MAX_TURNS', desc: '非交互模式最大轮数', default: 'Infinity' },
+    { name: 'CLAUDE_CODE_MAX_TURNS', desc: '非交互模式最大轮数', default: '无上限' },
     { name: 'CLAUDE_CODE_MAX_OUTPUT_TOKENS', desc: '单回复最大 Token 数', default: '模型默认' },
     { name: 'CLAUDE_CODE_EFFORT_LEVEL', desc: '推理力度（low/medium/high/xhigh/max/auto）', default: '—' },
     { name: 'CLAUDE_CODE_DISABLE_THINKING', desc: '禁用扩展思考', default: '0' },
@@ -672,10 +672,10 @@ export default function Overview() {
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 mb-6">
           <div className="flex items-center justify-between mb-1">
             <h3 className="text-[15px] font-semibold text-gray-900">环境变量</h3>
-            <span className="text-[12px] text-gray-400">{Object.values(ENV_VARS).reduce((s, a) => s + a.length, 0)} 个</span>
+            <span className="text-[12px] text-gray-400">常用 {Object.values(ENV_VARS).reduce((s, a) => s + a.length, 0)} 个</span>
           </div>
           <p className="text-[12px] text-gray-400 mb-4">
-            控制 Claude Code 运行行为的关键环境变量 — <a href="https://code.claude.com/docs/en/env-vars" target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">官方文档</a>
+            常用环境变量速查（完整列表含 200+ 个变量）— <a href="https://code.claude.com/docs/en/env-vars" target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">官方完整文档</a>
           </p>
           <div className="space-y-0">
             {Object.entries(ENV_VARS).map(([cat, vars]) => (
@@ -714,7 +714,7 @@ export default function Overview() {
             <span className="text-[12px] text-gray-400">{Object.values(SLASH_COMMANDS).reduce((s, a) => s + a.length, 0)} 个</span>
           </div>
           <p className="text-[12px] text-gray-400 mb-4">
-            在 Claude Code 中输入 / 触发的快捷命令 — <a href="https://code.claude.com/docs/en/commands" target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">官方文档</a>
+            在 Claude Code 中输入 / 触发的快捷命令（别名合并计数，含 bundled skill）— <a href="https://code.claude.com/docs/en/commands" target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">官方文档</a>
           </p>
           <div className="space-y-0">
             {Object.entries(SLASH_COMMANDS).map(([cat, cmds]) => (
