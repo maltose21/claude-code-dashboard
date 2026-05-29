@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
+import ReactMarkdown from 'react-markdown'
 
 const BUILTIN_TOOL_CATEGORIES = {
   '文件操作': [
@@ -309,6 +310,7 @@ export default function Overview() {
   const [loading, setLoading] = useState(true)
   const [expandedCats, setExpandedCats] = useState({})
   const [versionInfo, setVersionInfo] = useState(null)
+  const [showRelease, setShowRelease] = useState(false)
 
   const load = () => {
     setLoading(true)
@@ -370,17 +372,39 @@ export default function Overview() {
                       <span className="text-[11px] px-2 py-0.5 rounded-full bg-green-50 text-green-600 font-medium">已是最新</span>
                     ) : null}
                   </div>
+                  {versionInfo.publishedAt && (
+                    <p className="text-[11px] text-gray-400 mt-0.5">发布于 {new Date(versionInfo.publishedAt).toLocaleDateString('zh-CN')}</p>
+                  )}
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                <a href={`https://github.com/anthropics/claude-code/releases${versionInfo.latest ? `/tag/v${versionInfo.latest}` : ''}`} target="_blank" rel="noopener noreferrer"
-                  className="text-[13px] px-3 py-1.5 rounded-lg bg-gray-100 text-gray-600 hover:bg-gray-200 font-medium transition-colors">
-                  GitHub 更新日志 →
-                </a>
+                {versionInfo.releaseNotes && (
+                  <button
+                    onClick={() => setShowRelease(v => !v)}
+                    className="text-[13px] px-3 py-1.5 rounded-lg bg-gray-100 text-gray-600 hover:bg-gray-200 font-medium transition-colors"
+                  >
+                    {showRelease ? '收起' : '查看更新日志'}
+                  </button>
+                )}
+                {versionInfo.releaseUrl && (
+                  <a href={versionInfo.releaseUrl} target="_blank" rel="noopener noreferrer"
+                    className="text-[13px] px-3 py-1.5 rounded-lg bg-gray-100 text-gray-600 hover:bg-gray-200 font-medium transition-colors">
+                    GitHub →
+                  </a>
+                )}
               </div>
             </div>
+
+            {showRelease && versionInfo.releaseNotes && (
+              <div className="mt-4 border-t border-gray-100 pt-4">
+                <div className="bg-gray-50 rounded-xl p-4 max-h-80 overflow-y-auto prose prose-sm prose-gray max-w-none text-[13px] [&_h1]:text-base [&_h2]:text-sm [&_h3]:text-sm [&_p]:text-[13px] [&_li]:text-[13px] [&_code]:text-[12px] [&_pre]:text-[12px]">
+                  <ReactMarkdown>{versionInfo.releaseNotes}</ReactMarkdown>
+                </div>
+              </div>
+            )}
+
             {versionInfo.hasUpdate && (
-              <div className="mt-3 flex items-center gap-2 text-[13px] text-gray-500">
+              <div className="mt-3 pt-3 border-t border-gray-100 flex items-center gap-2 text-[13px] text-gray-500">
                 <span>更新命令：</span>
                 <code className="bg-gray-100 px-2 py-1 rounded text-[12px] font-mono select-all text-gray-700">npm install -g @anthropic-ai/claude-code@latest</code>
                 <button

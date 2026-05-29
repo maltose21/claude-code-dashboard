@@ -434,9 +434,22 @@ router.get('/version', async (req, res) => {
       latest = npmData.version || null
     } catch {}
 
+    let releaseNotes = null, releaseUrl = null, publishedAt = null
+    try {
+      const { stdout } = await execFileAsync('curl', [
+        '-s', '--max-time', '5',
+        '-H', 'Accept: application/vnd.github+json',
+        'https://api.github.com/repos/anthropics/claude-code/releases/latest'
+      ], { timeout: 8000 })
+      const gh = JSON.parse(stdout)
+      releaseNotes = gh.body || null
+      releaseUrl = gh.html_url || null
+      publishedAt = gh.published_at || null
+    } catch {}
+
     const hasUpdate = !!(current && latest && current !== latest)
 
-    res.json({ current, latest, hasUpdate })
+    res.json({ current, latest, hasUpdate, releaseNotes, releaseUrl, publishedAt })
   } catch (err) {
     res.status(500).json({ error: err.message })
   }
