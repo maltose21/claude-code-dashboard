@@ -137,8 +137,7 @@ const ENV_VARS = {
     { name: 'CLAUDE_CODE_USE_BEDROCK', desc: '使用 AWS Bedrock 后端', default: '未设置' },
     { name: 'CLAUDE_CODE_USE_VERTEX', desc: '使用 Google Vertex AI 后端', default: '未设置' },
     { name: 'CLAUDE_CODE_USE_FOUNDRY', desc: '使用 Microsoft Foundry 后端', default: '未设置' },
-    { name: 'CLAUDE_CODE_API_KEY_HELPER', desc: 'API 密钥获取命令', default: '—' },
-    { name: 'CLAUDE_CODE_API_KEY_HELPER_TTL_MS', desc: '密钥刷新间隔（毫秒）', default: '—' },
+    { name: 'CLAUDE_CODE_API_KEY_HELPER_TTL_MS', desc: '密钥刷新间隔（毫秒，配合 settings.json 的 apiKeyHelper 使用）', default: '—' },
   ],
   '行为控制': [
     { name: 'CLAUDE_CODE_MAX_TURNS', desc: '限制最大 agentic 轮数', default: '无上限' },
@@ -223,6 +222,7 @@ const SLASH_COMMANDS = {
     { name: '/security-review', desc: '分析当前分支的安全漏洞' },
     { name: '/ultraplan', desc: '云端深度规划' },
     { name: '/ultrareview', desc: '云端多代理深度代码审查' },
+    { name: '/workflows', desc: '查看/管理工作流进度（暂停/恢复/保存）' },
   ],
   '账号与平台': [
     { name: '/login', desc: '登录 Anthropic 账号' },
@@ -263,6 +263,7 @@ const SLASH_COMMANDS = {
     { name: '/loop', desc: '循环执行任务（可自定间隔或自动节奏）', skill: true, alias: '/proactive' },
     { name: '/claude-api', desc: '加载 Claude API 参考（migrate/managed-agents-onboard）', skill: true },
     { name: '/fewer-permission-prompts', desc: '扫描历史自动添加权限白名单', skill: true },
+    { name: '/deep-research', desc: '多源网络搜索与交叉验证生成引用报告', skill: true },
   ],
 }
 
@@ -386,12 +387,10 @@ export default function Overview() {
                     {showRelease ? '收起' : '查看更新日志'}
                   </button>
                 )}
-                {versionInfo.releaseUrl && (
-                  <a href={versionInfo.releaseUrl} target="_blank" rel="noopener noreferrer"
-                    className="text-[13px] px-3 py-1.5 rounded-lg bg-gray-100 text-gray-600 hover:bg-gray-200 font-medium transition-colors">
-                    GitHub →
-                  </a>
-                )}
+                <a href={versionInfo.releaseUrl || 'https://github.com/anthropics/claude-code/releases'} target="_blank" rel="noopener noreferrer"
+                  className="text-[13px] px-3 py-1.5 rounded-lg bg-gray-100 text-gray-600 hover:bg-gray-200 font-medium transition-colors">
+                  {versionInfo.releaseNotes ? 'GitHub →' : '查看更新日志 →'}
+                </a>
               </div>
             </div>
 
@@ -699,7 +698,7 @@ export default function Overview() {
             <span className="text-[12px] text-gray-400">常用 {Object.values(ENV_VARS).reduce((s, a) => s + a.length, 0)} 个</span>
           </div>
           <p className="text-[12px] text-gray-400 mb-4">
-            常用环境变量速查（完整列表含 200+ 个变量）— <a href="https://code.claude.com/docs/en/env-vars" target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">官方完整文档</a>
+            常用环境变量速查 — <a href="https://code.claude.com/docs/en/env-vars" target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">查看完整列表</a>
           </p>
           <div className="space-y-0">
             {Object.entries(ENV_VARS).map(([cat, vars]) => (

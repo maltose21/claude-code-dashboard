@@ -100,7 +100,7 @@ router.post('/', (req, res) => {
     const memoryDir = path.join(CLAUDE_DIR, 'projects', projectDir, 'memory')
     if (!fs.existsSync(memoryDir)) fs.mkdirSync(memoryDir, { recursive: true })
 
-    const safeName = filename.replace(/[^a-zA-Z0-9_-]/g, '-').replace(/\.md$/, '') + '.md'
+    const safeName = filename.replace(/\.md$/, '').replace(/[^a-zA-Z0-9_-]/g, '-') + '.md'
     const filePath = ensureWithin(memoryDir, safeName)
     fs.writeFileSync(filePath, content, 'utf-8')
 

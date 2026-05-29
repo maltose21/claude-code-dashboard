@@ -171,7 +171,7 @@ export default function ConversationList() {
                           {conv.startTime ? new Date(conv.startTime).toLocaleString('zh-CN') : '无时间'}
                         </span>
                       </div>
-                      <p className="text-[13px] text-gray-700 truncate font-medium pr-24">{conv.summary || '(无摘要)'}</p>
+                      <p className="text-[13px] text-gray-700 truncate font-medium pr-24">{(conv.summary || '(无摘要)').replace(/<[^>]+>/g, '')}</p>
                       <div className="flex gap-5 mt-2 text-xs text-gray-400">
                         <span>{conv.messageCount} 条消息</span>
                         <span>{conv.totalLines} 行</span>

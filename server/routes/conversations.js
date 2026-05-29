@@ -29,7 +29,7 @@ router.get('/', (req, res) => {
             const textContent = content.find(c => c.type === 'text' && !c.text?.startsWith('<'))
             summary = textContent?.text?.slice(0, 100) || ''
           } else if (typeof content === 'string') {
-            summary = content.slice(0, 100)
+            summary = content.replace(/<[^>]+>/g, '').slice(0, 100)
           }
         }
 

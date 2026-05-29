@@ -60,6 +60,39 @@ router.post('/', (req, res) => {
   }
 })
 
+router.post('/scripts', (req, res) => {
+  try {
+    const { name, content } = req.body
+    if (!name || !content) return res.status(400).json({ error: '需要 name 和 content' })
+
+    const safeName = path.basename(name.endsWith('.sh') ? name : name + '.sh')
+    if (!safeName.endsWith('.sh') || safeName.startsWith('.')) {
+      return res.status(400).json({ error: '非法文件名' })
+    }
+
+    if (!fs.existsSync(HOOKS_DIR)) fs.mkdirSync(HOOKS_DIR, { recursive: true })
+    const filePath = ensureWithin(HOOKS_DIR, safeName)
+    fs.writeFileSync(filePath, content, 'utf-8')
+    fs.chmodSync(filePath, '755')
+
+    res.json({ success: true })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+router.delete('/scripts/:name', (req, res) => {
+  try {
+    const filePath = ensureWithin(HOOKS_DIR, req.params.name)
+    if (!fs.existsSync(filePath)) return res.status(404).json({ error: '脚本不存在' })
+
+    fs.unlinkSync(filePath)
+    res.json({ success: true })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
 router.put('/:event/:index', (req, res) => {
   try {
     const { event, index } = req.params
@@ -92,39 +125,6 @@ router.delete('/:event/:index', (req, res) => {
     res.json({ success: true })
   } catch (err) {
     res.status(err.message.includes('不存在') ? 404 : 500).json({ error: err.message })
-  }
-})
-
-router.post('/scripts', (req, res) => {
-  try {
-    const { name, content } = req.body
-    if (!name || !content) return res.status(400).json({ error: '需要 name 和 content' })
-
-    const safeName = path.basename(name.endsWith('.sh') ? name : name + '.sh')
-    if (!safeName.endsWith('.sh') || safeName.startsWith('.')) {
-      return res.status(400).json({ error: '非法文件名' })
-    }
-
-    if (!fs.existsSync(HOOKS_DIR)) fs.mkdirSync(HOOKS_DIR, { recursive: true })
-    const filePath = ensureWithin(HOOKS_DIR, safeName)
-    fs.writeFileSync(filePath, content, 'utf-8')
-    fs.chmodSync(filePath, '755')
-
-    res.json({ success: true })
-  } catch (err) {
-    res.status(500).json({ error: err.message })
-  }
-})
-
-router.delete('/scripts/:name', (req, res) => {
-  try {
-    const filePath = ensureWithin(HOOKS_DIR, req.params.name)
-    if (!fs.existsSync(filePath)) return res.status(404).json({ error: '脚本不存在' })
-
-    fs.unlinkSync(filePath)
-    res.json({ success: true })
-  } catch (err) {
-    res.status(500).json({ error: err.message })
   }
 })
 

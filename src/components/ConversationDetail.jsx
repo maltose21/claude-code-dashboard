@@ -102,7 +102,7 @@ export default function ConversationDetail() {
       .map(m => m.content)
       .filter(Boolean)
       .slice(0, 3)
-      .map(t => t.slice(0, 200))
+      .map(t => t.replace(/<[^>]+>/g, '').slice(0, 200))
       .join('\n\n')
 
     const defaultName = `conv-${id.slice(0, 8)}`

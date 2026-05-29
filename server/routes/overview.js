@@ -244,7 +244,7 @@ router.get('/harness', (req, res) => {
       totalDeny: (settings.permissions?.deny || []).length
     }
 
-    // CLAUDE.md files
+    // CLAUDE.md files + rules directories
     result.claudeMd = []
     const mdLocations = [
       { label: '全局', scope: 'user', p: path.join(CLAUDE_DIR, 'CLAUDE.md') },
@@ -259,6 +259,17 @@ router.get('/harness', (req, res) => {
           scope: loc.scope,
           label: loc.label,
           preview: content.slice(0, 200).replace(/\n/g, ' ')
+        })
+      }
+    }
+    const rulesDirs = [
+      { scope: 'user-rule', dir: path.join(CLAUDE_DIR, 'rules') },
+      { scope: 'project-rule', dir: path.join(process.cwd(), '.claude', 'rules') },
+    ]
+    for (const rd of rulesDirs) {
+      if (fs.existsSync(rd.dir)) {
+        fs.readdirSync(rd.dir).filter(f => f.endsWith('.md')).forEach(f => {
+          result.claudeMd.push({ scope: rd.scope, label: f, preview: '' })
         })
       }
     }
@@ -439,6 +450,7 @@ router.get('/version', async (req, res) => {
       const { stdout } = await execFileAsync('curl', [
         '-s', '--max-time', '5',
         '-H', 'Accept: application/vnd.github+json',
+        '-H', 'User-Agent: claude-code-dashboard',
         'https://api.github.com/repos/anthropics/claude-code/releases/latest'
       ], { timeout: 8000 })
       const gh = JSON.parse(stdout)
