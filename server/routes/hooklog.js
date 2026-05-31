@@ -12,7 +12,7 @@ const LOGGER_SCRIPT = path.join(HOOKS_DIR, 'hook-logger.sh')
 const ALL_EVENTS = [
   'Setup', 'SessionStart', 'SessionEnd', 'UserPromptSubmit', 'UserPromptExpansion',
   'PreToolUse', 'PostToolUse', 'PostToolUseFailure', 'PostToolBatch',
-  'PermissionRequest', 'PermissionDenied', 'Stop', 'StopFailure',
+  'PermissionRequest', 'PermissionDenied', 'Stop', 'StopFailure', 'MessageDisplay',
   'SubagentStart', 'SubagentStop', 'TaskCreated', 'TaskCompleted',
   'TeammateIdle', 'PreCompact', 'PostCompact', 'Elicitation', 'ElicitationResult',
   'InstructionsLoaded', 'ConfigChange', 'CwdChanged', 'FileChanged',

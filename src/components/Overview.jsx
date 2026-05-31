@@ -34,7 +34,7 @@ const BUILTIN_TOOL_CATEGORIES = {
     { name: 'TaskUpdate', desc: '更新任务状态/依赖/详情或删除任务', perm: false },
     { name: 'TaskStop', desc: '停止后台任务', perm: false },
     { name: 'TaskOutput', desc: '获取后台任务输出（已弃用，改用 Read）', perm: false, deprecated: true },
-    { name: 'TodoWrite', desc: '管理会话待办列表（默认禁用）', perm: false, disabled: true },
+    { name: 'TodoWrite', desc: '管理会话待办列表', perm: false },
   ],
   '代理与团队': [
     { name: 'Agent', desc: '启动子代理处理任务', perm: false },
@@ -777,16 +777,29 @@ export default function Overview() {
             <div className="space-y-1">
               {activity.slice(0, 10).map((item, i) => {
                 const meta = ACTIVITY_ICON[item.type] || ACTIVITY_ICON.conversation
-                return (
-                  <div key={i} className="flex items-center gap-3 py-2 px-2 rounded-lg hover:bg-gray-50/60 transition-colors">
+                const linkTo = item.type === 'conversation' && item.id
+                  ? `/conversations/${item.id}`
+                  : item.type === 'memory' ? '/memories'
+                  : item.type === 'skill' ? '/skills' : null
+                const displayName = item.type === 'conversation'
+                  ? (item.summary?.replace(/<[^>]+>/g, '') || '(无摘要)')
+                  : item.name
+                const subtitle = item.type === 'conversation'
+                  ? `${item.messageCount || 0} 条消息${item.project ? ` · ${item.project.split('/').pop()}` : ''}`
+                  : `${meta.label}${item.project ? ` · ${item.project.split('/').pop()}` : ''}`
+                const content = (
+                  <div className={`flex items-center gap-3 py-2 px-2 rounded-lg hover:bg-gray-50/60 transition-colors ${linkTo ? 'cursor-pointer' : ''}`}>
                     <span className={`w-8 h-8 rounded-lg flex items-center justify-center text-sm ${meta.bg}`}>{meta.icon}</span>
                     <div className="flex-1 min-w-0">
-                      <span className="text-[13px] text-gray-800 font-medium truncate block">{item.name}</span>
-                      <span className="text-[11px] text-gray-400">{meta.label}{item.project && ` · ${item.project.split('/').pop()}`}</span>
+                      <span className="text-[13px] text-gray-800 font-medium truncate block">{displayName}</span>
+                      <span className="text-[11px] text-gray-400">{subtitle}</span>
                     </div>
                     <span className="text-[11px] text-gray-400 whitespace-nowrap">{timeAgo(item.time)}</span>
                   </div>
                 )
+                return linkTo
+                  ? <Link key={i} to={linkTo} className="block">{content}</Link>
+                  : <div key={i}>{content}</div>
               })}
             </div>
           </div>

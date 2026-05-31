@@ -21,15 +21,17 @@ router.get('/', (req, res) => {
         const lines = parseJsonl(filePath)
 
         const userMessages = lines.filter(l => l.type === 'user')
-        const firstUserMsg = userMessages[0]
         let summary = ''
-        if (firstUserMsg?.message?.content) {
-          const content = firstUserMsg.message.content
+        for (const msg of userMessages) {
+          if (summary) break
+          const content = msg.message?.content
+          if (!content) continue
           if (Array.isArray(content)) {
             const textContent = content.find(c => c.type === 'text' && !c.text?.startsWith('<'))
-            summary = textContent?.text?.slice(0, 100) || ''
-          } else if (typeof content === 'string') {
-            summary = content.replace(/<[^>]+>/g, '').slice(0, 100)
+            if (textContent?.text) summary = textContent.text.replace(/<[^>]+>/g, '').slice(0, 100)
+          } else if (typeof content === 'string' && !content.startsWith('<')) {
+            const cleaned = content.replace(/<[^>]+>/g, '').slice(0, 100)
+            if (cleaned.trim()) summary = cleaned
           }
         }
 
@@ -46,8 +48,8 @@ router.get('/', (req, res) => {
           summary,
           startTime: startTime ? new Date(startTime).toISOString() : null,
           endTime: endTime ? new Date(endTime).toISOString() : null,
-          cwd: firstUserMsg?.cwd || '',
-          version: firstUserMsg?.version || ''
+          cwd: userMessages[0]?.cwd || '',
+          version: userMessages[0]?.version || ''
         })
       }
     }

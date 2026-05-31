@@ -98,26 +98,66 @@ router.get('/', (req, res) => {
   }
 })
 
-router.get('/activity', (req, res) => {
+function extractConversationMeta(filePath) {
+  return new Promise((resolve) => {
+    let summary = ''
+    let messageCount = 0
+    let foundSummary = false
+    const rl = readline.createInterface({ input: fs.createReadStream(filePath), crlfDelay: Infinity })
+    rl.on('line', (line) => {
+      if (!line.includes('"user"')) return
+      let d
+      try { d = JSON.parse(line) } catch { return }
+      if (d.type !== 'user') return
+      messageCount++
+      if (!foundSummary && d.message?.content) {
+        const content = d.message.content
+        let candidate = ''
+        if (Array.isArray(content)) {
+          const t = content.find(c => c.type === 'text' && !c.text?.startsWith('<'))
+          candidate = t?.text?.replace(/<[^>]+>/g, '').slice(0, 100) || ''
+        } else if (typeof content === 'string' && !content.startsWith('<')) {
+          candidate = content.replace(/<[^>]+>/g, '').slice(0, 100)
+        }
+        if (candidate.trim()) {
+          summary = candidate
+          foundSummary = true
+        }
+      }
+    })
+    rl.on('close', () => resolve({ summary, messageCount }))
+    rl.on('error', () => resolve({ summary: '', messageCount: 0 }))
+  })
+}
+
+router.get('/activity', async (req, res) => {
   try {
     const activities = []
     const projectDirs = getProjectDirs()
 
-    // Recent conversations (by file mtime)
+    const convPromises = []
     for (const dir of projectDirs) {
       const files = fs.readdirSync(dir.fullPath).filter(f => f.endsWith('.jsonl'))
       for (const f of files) {
-        const stat = fs.statSync(path.join(dir.fullPath, f))
-        activities.push({
-          type: 'conversation',
-          name: f.replace('.jsonl', '').slice(0, 8),
-          project: dir.displayName,
-          time: stat.mtime.toISOString()
-        })
+        const filePath = path.join(dir.fullPath, f)
+        const stat = fs.statSync(filePath)
+        const sessionId = f.replace('.jsonl', '')
+        convPromises.push(
+          extractConversationMeta(filePath).then(meta => ({
+            type: 'conversation',
+            id: sessionId,
+            name: meta.summary || sessionId.slice(0, 8),
+            summary: meta.summary,
+            messageCount: meta.messageCount,
+            project: dir.displayName,
+            time: stat.mtime.toISOString()
+          }))
+        )
       }
     }
+    const convResults = await Promise.all(convPromises)
+    activities.push(...convResults)
 
-    // Recent memory changes
     for (const dir of projectDirs) {
       const memDir = path.join(dir.fullPath, 'memory')
       if (!fs.existsSync(memDir)) continue
@@ -133,7 +173,6 @@ router.get('/activity', (req, res) => {
       }
     }
 
-    // Recent skill changes
     const skillsDir = path.join(CLAUDE_DIR, 'skills')
     if (fs.existsSync(skillsDir)) {
       const dirs = fs.readdirSync(skillsDir).filter(f => {
@@ -151,7 +190,6 @@ router.get('/activity', (req, res) => {
       }
     }
 
-    // Sort by time descending, take top 20
     activities.sort((a, b) => new Date(b.time) - new Date(a.time))
     res.json(activities.slice(0, 20))
   } catch (err) {

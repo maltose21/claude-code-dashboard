@@ -62,7 +62,7 @@ export default function PluginPanel() {
                   <span className="text-xs text-gray-400">@{plugin.name.split('@')[1]}</span>
                 </div>
                 <div className="flex gap-4 text-xs text-gray-400">
-                  <span>v{plugin.version}</span>
+                  {plugin.version && plugin.version !== 'unknown' && <span>v{plugin.version}</span>}
                   <span>{plugin.scope}</span>
                   {plugin.installedAt && <span>{new Date(plugin.installedAt).toLocaleDateString('zh-CN')}</span>}
                 </div>
